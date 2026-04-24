@@ -1,0 +1,54 @@
+{
+	"name": "ds_datamart_sql_Dim_EmploymentType",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "EmploymentTypeKey",
+				"type": "Integer"
+			},
+			{
+				"name": "EmploymentTypeCode",
+				"type": "String"
+			},
+			{
+				"name": "EmploymentTypeName",
+				"type": "String"
+			},
+			{
+				"name": "Category",
+				"type": "String"
+			},
+			{
+				"name": "IsPermanent",
+				"type": "Boolean"
+			},
+			{
+				"name": "IsContingent",
+				"type": "Boolean"
+			},
+			{
+				"name": "CreatedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "IsActive",
+				"type": "Boolean"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Dim_EmploymentType"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

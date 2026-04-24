@@ -1,0 +1,62 @@
+{
+	"name": "ds_datamart_sql_Dim_Organisation",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "OrgKey",
+				"type": "Integer"
+			},
+			{
+				"name": "CostCentre",
+				"type": "String"
+			},
+			{
+				"name": "Service",
+				"type": "String"
+			},
+			{
+				"name": "Division",
+				"type": "String"
+			},
+			{
+				"name": "Directorate",
+				"type": "String"
+			},
+			{
+				"name": "CareGroup",
+				"type": "String"
+			},
+			{
+				"name": "Department",
+				"type": "String"
+			},
+			{
+				"name": "TrustVPD",
+				"type": "String"
+			},
+			{
+				"name": "CreatedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "IsActive",
+				"type": "Boolean"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Dim_Organisation"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

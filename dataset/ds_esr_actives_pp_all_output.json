@@ -1,0 +1,43 @@
+{
+	"name": "ds_esr_actives_pp_all_output",
+	"properties": {
+		"description": "Output 2a: Patient Privacy Workforce — all-VPD consolidated CSV. Schema per Active Patient Privacy Staff Data Product Mapping Spec V0.2 (subset of Active Staff Full; no Prof Reg/DBS/Visa fields). Path: conformed/actives/pp/all/.",
+		"linkedServiceName": {
+			"referenceName": "ls_adls_stnhsdwidev",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_output_filename": {
+				"type": "String",
+				"defaultValue": "20260401_PatientPrivacyWorkforce_Azure_All.csv"
+			},
+			"p_output_folder": {
+				"type": "String",
+				"defaultValue": "actives/pp/all"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().p_output_filename",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().p_output_folder",
+					"type": "Expression"
+				},
+				"fileSystem": "conformed"
+			},
+			"columnDelimiter": ",",
+			"rowDelimiter": "\n",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

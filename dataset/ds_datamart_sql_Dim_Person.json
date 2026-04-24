@@ -1,0 +1,92 @@
+{
+	"name": "ds_datamart_sql_Dim_Person",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "PersonKey",
+				"type": "Integer"
+			},
+			{
+				"name": "PUID",
+				"type": "String"
+			},
+			{
+				"name": "EmployeeNumber",
+				"type": "String"
+			},
+			{
+				"name": "Forename",
+				"type": "String"
+			},
+			{
+				"name": "Surname",
+				"type": "String"
+			},
+			{
+				"name": "Title",
+				"type": "String"
+			},
+			{
+				"name": "Gender",
+				"type": "String"
+			},
+			{
+				"name": "DateOfBirth",
+				"type": "DateTime"
+			},
+			{
+				"name": "MaritalStatus",
+				"type": "String"
+			},
+			{
+				"name": "LatestStartDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "NHSEntryDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "OriginalHireDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "LengthOfServiceYears",
+				"type": "Decimal",
+				"precision": 5,
+				"scale": 2
+			},
+			{
+				"name": "TrustVPD",
+				"type": "String"
+			},
+			{
+				"name": "AgeBand",
+				"type": "String"
+			},
+			{
+				"name": "CreatedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "IsActive",
+				"type": "Boolean"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Dim_Person"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
