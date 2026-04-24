@@ -1,0 +1,43 @@
+{
+	"name": "ds_datamart_conformed_activestaff",
+	"properties": {
+		"description": "Source for pl_load_datamart. Reads the conformed ActiveStaffFull CSV produced by pl_esr_actives_daily. p_folder = conformed sub-path (e.g. actives/staff/all); p_filename = YYYYMMDD_ActiveStaffFull_Azure_All.csv.",
+		"linkedServiceName": {
+			"referenceName": "ls_adls_stnhsdwidev",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_filename": {
+				"type": "String",
+				"defaultValue": "20260319_ActiveStaffFull_Azure_All.csv"
+			},
+			"p_folder": {
+				"type": "String",
+				"defaultValue": "actives/staff/all"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().p_filename",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().p_folder",
+					"type": "Expression"
+				},
+				"fileSystem": "conformed"
+			},
+			"columnDelimiter": ",",
+			"rowDelimiter": "\n",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

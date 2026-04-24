@@ -1,0 +1,15 @@
+{
+	"name": "adf-nhsdwi-dev",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Enabled",
+			"editable": true
+		}
+	},
+	"location": "uksouth",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "be266b24-60d2-4fd4-a210-e7da47b4881c",
+		"tenantId": "4ef9a83a-a72c-405e-9157-4813d042c1f2"
+	}
+}

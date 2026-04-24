@@ -1,0 +1,34 @@
+{
+	"name": "tr_daily_esr_actives",
+	"properties": {
+		"description": "Daily schedule trigger for pl_esr_actives_daily. Fires at 01:00 UTC (1:00am GMT). Created in STOPPED state — activate manually after testing is complete.",
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_esr_actives_daily",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"p_pp_all_output_folder": "actives/pp/all",
+					"p_pp_vpd_output_folder": "actives/pp/185",
+					"p_run_date": "@trigger().scheduledTime",
+					"p_source_folder": "@concat('esr/', formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd'))",
+					"p_staff_all_output_folder": "actives/staff/all",
+					"p_staff_vpd_output_folder": "actives/staff/185",
+					"p_vpd_code": "185"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2026-04-02T01:00:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

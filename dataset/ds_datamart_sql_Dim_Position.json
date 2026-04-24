@@ -1,0 +1,74 @@
+{
+	"name": "ds_datamart_sql_Dim_Position",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "PositionKey",
+				"type": "Integer"
+			},
+			{
+				"name": "PositionNumber",
+				"type": "String"
+			},
+			{
+				"name": "KnownAsJobTitle",
+				"type": "String"
+			},
+			{
+				"name": "FormalJobTitle",
+				"type": "String"
+			},
+			{
+				"name": "AreaOfWork",
+				"type": "String"
+			},
+			{
+				"name": "SubjectiveCode",
+				"type": "String"
+			},
+			{
+				"name": "JobStaffGroup",
+				"type": "String"
+			},
+			{
+				"name": "JobRole",
+				"type": "String"
+			},
+			{
+				"name": "OccupationCode",
+				"type": "String"
+			},
+			{
+				"name": "FrontlineHealthcareWorker",
+				"type": "String"
+			},
+			{
+				"name": "PayGrade",
+				"type": "String"
+			},
+			{
+				"name": "HiringStatus",
+				"type": "String"
+			},
+			{
+				"name": "CreatedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "DateTime"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Dim_Position"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

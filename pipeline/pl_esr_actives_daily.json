@@ -1,0 +1,1243 @@
+{
+	"name": "pl_esr_actives_daily",
+	"properties": {
+		"description": "Daily ESR Actives ETL: reads all StaffInPost_*.csv, PositionsAnalysis_*.csv and Learning_*.csv from p_source_folder; runs df_transform_esr_actives (3-source join); writes Active Staff Full (V0.1) and Patient Privacy Workforce (V0.2) as all-VPD and VPD-filtered outputs; archives source files. Output filenames: YYYYMMDD_ActiveStaffFull_Azure.csv and YYYYMMDD_PatientPrivacyWorkforce_Azure.csv.",
+		"activities": [
+			{
+				"name": "ClearWorking_StaffAll",
+				"type": "Delete",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "ClearWorking_StaffVPD",
+				"type": "Delete",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "ClearWorking_PPAll",
+				"type": "Delete",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "ClearWorking_PPVPD",
+				"type": "Delete",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "ExecuteDataFlow_TransformActives",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "ClearWorking_StaffAll",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed"
+						]
+					},
+					{
+						"activity": "ClearWorking_StaffVPD",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed"
+						]
+					},
+					{
+						"activity": "ClearWorking_PPAll",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed"
+						]
+					},
+					{
+						"activity": "ClearWorking_PPVPD",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_transform_esr_actives",
+						"type": "DataFlowReference",
+						"parameters": {
+							"vpd_code": {
+								"value": "@int(pipeline().parameters.p_vpd_code)",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"SourceSIP": {
+								"p_folder": {
+									"value": "@concat(pipeline().parameters.p_source_folder, '/sip')",
+									"type": "Expression"
+								}
+							},
+							"SourcePOS": {
+								"p_folder": {
+									"value": "@concat(pipeline().parameters.p_source_folder, '/pos')",
+									"type": "Expression"
+								}
+							},
+							"SourceLRN": {
+								"p_folder": {
+									"value": "@concat(pipeline().parameters.p_source_folder, '/lrn')",
+									"type": "Expression"
+								}
+							},
+							"SinkStaffAll": {
+								"p_output_filename": {
+									"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_All.csv')",
+									"type": "Expression"
+								},
+								"p_output_folder": {
+									"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+									"type": "Expression"
+								}
+							},
+							"SinkStaffVPD": {
+								"p_output_filename": {
+									"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+									"type": "Expression"
+								},
+								"p_output_folder": {
+									"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+									"type": "Expression"
+								}
+							},
+							"SinkPPAll": {
+								"p_output_filename": {
+									"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_All.csv')",
+									"type": "Expression"
+								},
+								"p_output_folder": {
+									"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+									"type": "Expression"
+								}
+							},
+							"SinkPPVPD": {
+								"p_output_filename": {
+									"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+									"type": "Expression"
+								},
+								"p_output_folder": {
+									"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "CopyToArchive_SIP",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_TransformActives",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.p_source_folder, '/sip')",
+								"type": "Expression"
+							},
+							"wildcardFileName": "*.csv"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": null
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_esr_actives_sip_source",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@pipeline().parameters.p_source_folder",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_esr_actives_csv_archive",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_archive_folder": {
+								"value": "@concat('esr/', formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'))",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "CopyToArchive_POS",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_TransformActives",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.p_source_folder, '/pos')",
+								"type": "Expression"
+							},
+							"wildcardFileName": "*.csv"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": null
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_esr_actives_pos_source",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@pipeline().parameters.p_source_folder",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_esr_actives_csv_archive",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_archive_folder": {
+								"value": "@concat('esr/', formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'))",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "CopyToArchive_LRN",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_TransformActives",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.p_source_folder, '/lrn')",
+								"type": "Expression"
+							},
+							"wildcardFileName": "*.csv"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": null
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_esr_actives_lrn_source",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@pipeline().parameters.p_source_folder",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_esr_actives_csv_archive",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_archive_folder": {
+								"value": "@concat('esr/', formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'))",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "CopyRename_StaffAll",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_TransformActives",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+								"type": "Expression"
+							},
+							"wildcardFileName": "part-*.csv"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": null
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_esr_actives_staff_all_output",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_output_filename": {
+								"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_All.csv')",
+								"type": "Expression"
+							},
+							"p_output_folder": {
+								"value": "@pipeline().parameters.p_staff_all_output_folder",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "CopyRename_StaffVPD",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_TransformActives",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+								"type": "Expression"
+							},
+							"wildcardFileName": "part-*.csv"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": null
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_esr_actives_staff_vpd_output",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_output_filename": {
+								"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+								"type": "Expression"
+							},
+							"p_output_folder": {
+								"value": "@pipeline().parameters.p_staff_vpd_output_folder",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "CopyRename_PPAll",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_TransformActives",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+								"type": "Expression"
+							},
+							"wildcardFileName": "part-*.csv"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": null
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_esr_actives_pp_all_output",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_output_filename": {
+								"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_All.csv')",
+								"type": "Expression"
+							},
+							"p_output_folder": {
+								"value": "@pipeline().parameters.p_pp_all_output_folder",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "CopyRename_PPVPD",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_TransformActives",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": false,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+								"type": "Expression"
+							},
+							"wildcardFileName": "part-*.csv"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": null
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_esr_actives_pp_vpd_output",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_output_filename": {
+								"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+								"type": "Expression"
+							},
+							"p_output_folder": {
+								"value": "@pipeline().parameters.p_pp_vpd_output_folder",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "CleanWorking_StaffAll",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "CopyRename_StaffAll",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "CleanWorking_StaffVPD",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "CopyRename_StaffVPD",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "CleanWorking_PPAll",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "CopyRename_PPAll",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "CleanWorking_PPVPD",
+				"type": "Delete",
+				"dependsOn": [
+					{
+						"activity": "CopyRename_PPVPD",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_esr_actives_conformed_folder",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folder": {
+								"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+								"type": "Expression"
+							}
+						}
+					},
+					"enableLogging": false,
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"wildcardFileName": "*"
+					}
+				}
+			},
+			{
+				"name": "IfCondition_CarryForward",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_TransformActives",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@not(empty(pipeline().parameters.p_fallback_date))",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "CarryForward_StaffAll",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": null
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_esr_actives_staff_all_output",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_output_filename": {
+											"value": "@concat(pipeline().parameters.p_fallback_date,'_ActiveStaffFull_Azure_All.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@pipeline().parameters.p_staff_all_output_folder",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_esr_actives_staff_all_output",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_output_filename": {
+											"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_All.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@pipeline().parameters.p_staff_all_output_folder",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "CarryForward_StaffVPD",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": null
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_esr_actives_staff_vpd_output",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_output_filename": {
+											"value": "@concat(pipeline().parameters.p_fallback_date,'_ActiveStaffFull_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@pipeline().parameters.p_staff_vpd_output_folder",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_esr_actives_staff_vpd_output",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_output_filename": {
+											"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@pipeline().parameters.p_staff_vpd_output_folder",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "CarryForward_PPAll",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": null
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_esr_actives_pp_all_output",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_output_filename": {
+											"value": "@concat(pipeline().parameters.p_fallback_date,'_PatientPrivacyWorkforce_Azure_All.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@pipeline().parameters.p_pp_all_output_folder",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_esr_actives_pp_all_output",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_output_filename": {
+											"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_All.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@pipeline().parameters.p_pp_all_output_folder",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "CarryForward_PPVPD",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": null
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_esr_actives_pp_vpd_output",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_output_filename": {
+											"value": "@concat(pipeline().parameters.p_fallback_date,'_PatientPrivacyWorkforce_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@pipeline().parameters.p_pp_vpd_output_folder",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_esr_actives_pp_vpd_output",
+									"type": "DatasetReference",
+									"parameters": {
+										"p_output_filename": {
+											"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@pipeline().parameters.p_pp_vpd_output_folder",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"p_fallback_date": {
+				"type": "String"
+			},
+			"p_pp_all_output_folder": {
+				"type": "String",
+				"defaultValue": "actives/pp/all"
+			},
+			"p_pp_vpd_output_folder": {
+				"type": "String",
+				"defaultValue": "actives/pp/185"
+			},
+			"p_run_date": {
+				"type": "String",
+				"defaultValue": "2026-04-01T00:00:00Z"
+			},
+			"p_source_folder": {
+				"type": "String",
+				"defaultValue": "esr/2026-04-01"
+			},
+			"p_staff_all_output_folder": {
+				"type": "String",
+				"defaultValue": "actives/staff/all"
+			},
+			"p_staff_vpd_output_folder": {
+				"type": "String",
+				"defaultValue": "actives/staff/185"
+			},
+			"p_vpd_code": {
+				"type": "String",
+				"defaultValue": "185"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-04-23T00:54:50Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

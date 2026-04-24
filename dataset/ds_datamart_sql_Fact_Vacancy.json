@@ -1,0 +1,60 @@
+{
+	"name": "ds_datamart_sql_Fact_Vacancy",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "VacancyFactKey",
+				"type": "Integer"
+			},
+			{
+				"name": "SnapshotDateKey",
+				"type": "Integer"
+			},
+			{
+				"name": "PositionKey",
+				"type": "Integer"
+			},
+			{
+				"name": "OrgKey",
+				"type": "Integer"
+			},
+			{
+				"name": "BudgetedWTE",
+				"type": "Decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "ActualWTE",
+				"type": "Decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "VacancyWTE",
+				"type": "Decimal",
+				"precision": 11,
+				"scale": 2
+			},
+			{
+				"name": "CreatedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "DateTime"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Fact_Vacancy"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

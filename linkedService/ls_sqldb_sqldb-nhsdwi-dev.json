@@ -1,0 +1,12 @@
+{
+	"name": "ls_sqldb_sqldb-nhsdwi-dev",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": "integrated security=False;data source=sql-nhsdwi-dev.database.windows.net;initial catalog=sqldb-nhsdwi-dev;",
+			"authenticationType": "ManagedServiceIdentity"
+		},
+		"annotations": []
+	}
+}

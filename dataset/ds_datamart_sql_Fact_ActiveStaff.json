@@ -1,0 +1,64 @@
+{
+	"name": "ds_datamart_sql_Fact_ActiveStaff",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "ActiveStaffFactKey",
+				"type": "Integer"
+			},
+			{
+				"name": "SnapshotDateKey",
+				"type": "Integer"
+			},
+			{
+				"name": "PersonKey",
+				"type": "Integer"
+			},
+			{
+				"name": "AssignmentKey",
+				"type": "Integer"
+			},
+			{
+				"name": "PositionKey",
+				"type": "Integer"
+			},
+			{
+				"name": "OrgKey",
+				"type": "Integer"
+			},
+			{
+				"name": "EmploymentTypeKey",
+				"type": "Integer"
+			},
+			{
+				"name": "WTE",
+				"type": "Decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "IsPrimaryAssignment",
+				"type": "Boolean"
+			},
+			{
+				"name": "CreatedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "DateTime"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Fact_ActiveStaff"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

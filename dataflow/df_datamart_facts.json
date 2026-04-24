@@ -1,0 +1,332 @@
+{
+	"name": "df_datamart_facts",
+	"properties": {
+		"description": "Loads Fact_ActiveStaff and Fact_Vacancy. Sources all dim tables from SQL to resolve surrogate FKs. Filters out rows with null mandatory FKs. SnapshotDateKey injected via pipeline parameter p_snapshot_date_key.",
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_conformed_activestaff",
+						"type": "DatasetReference"
+					},
+					"name": "SourceConformed",
+					"description": "Conformed ActiveStaffFull CSV."
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Dim_Organisation",
+						"type": "DatasetReference"
+					},
+					"name": "SourceDimOrg",
+					"description": "Dim_Organisation — OrgKey + CostCentre for FK lookup."
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Dim_Person",
+						"type": "DatasetReference"
+					},
+					"name": "SourceDimPerson",
+					"description": "Dim_Person — PersonKey + PUID for FK lookup."
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Dim_Position",
+						"type": "DatasetReference"
+					},
+					"name": "SourceDimPosition",
+					"description": "Dim_Position — PositionKey + PositionNumber for FK lookup."
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Dim_Assignment",
+						"type": "DatasetReference"
+					},
+					"name": "SourceDimAssignment",
+					"description": "Dim_Assignment — AssignmentKey + AssignmentNumber for FK lookup."
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Dim_EmploymentType",
+						"type": "DatasetReference"
+					},
+					"name": "SourceDimEmpType",
+					"description": "Dim_EmploymentType — EmploymentTypeKey + EmploymentTypeCode for FK lookup."
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Fact_ActiveStaff",
+						"type": "DatasetReference"
+					},
+					"name": "SinkFactActiveStaff",
+					"description": "Upsert Fact_ActiveStaff on (SnapshotDateKey, AssignmentKey)."
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Fact_Vacancy",
+						"type": "DatasetReference"
+					},
+					"name": "SinkFactVacancy",
+					"description": "Upsert Fact_Vacancy on (SnapshotDateKey, PositionKey). BudgetedWTE left null (placeholder)."
+				}
+			],
+			"transformations": [
+				{
+					"name": "DeriveEmpTypeCode"
+				},
+				{
+					"name": "JoinOrgKey"
+				},
+				{
+					"name": "JoinPersonKey"
+				},
+				{
+					"name": "JoinPositionKey"
+				},
+				{
+					"name": "JoinAssignmentKey"
+				},
+				{
+					"name": "JoinEmpTypeKey"
+				},
+				{
+					"name": "FilterValidFacts"
+				},
+				{
+					"name": "DeriveActiveFact"
+				},
+				{
+					"name": "SelectActiveFact"
+				},
+				{
+					"name": "FilterPositionsForVacancy"
+				},
+				{
+					"name": "AggregateVacancy"
+				},
+				{
+					"name": "JoinVacancyPositionKey"
+				},
+				{
+					"name": "JoinVacancyKeys"
+				},
+				{
+					"name": "FilterValidVacancy"
+				},
+				{
+					"name": "DeriveVacancyFact"
+				},
+				{
+					"name": "SelectVacancyFact"
+				},
+				{
+					"name": "AlterRowActiveFact"
+				},
+				{
+					"name": "AlterRowVacancyFact"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     p_snapshot_date_key as integer (20260319)",
+				"}",
+				"source(output(",
+				"          PERSON_UNIQUE_IDENTIFIER_PUID as string,",
+				"          ASSIGNMENT_NUMBER as string,",
+				"          FTE as string,",
+				"          PRIMARY_JOB as string,",
+				"          ASSIGNMENT_TYPE as string,",
+				"          WORKPLACE_ORG_NAME as string,",
+				"          POSITION_NUMBER as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> SourceConformed",
+				"source(output(",
+				"          OrgKey as integer,",
+				"          CostCentre as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SourceDimOrg",
+				"source(output(",
+				"          PersonKey as integer,",
+				"          PUID as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SourceDimPerson",
+				"source(output(",
+				"          PositionKey as integer,",
+				"          PositionNumber as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SourceDimPosition",
+				"source(output(",
+				"          AssignmentKey as integer,",
+				"          AssignmentNumber as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SourceDimAssignment",
+				"source(output(",
+				"          EmploymentTypeKey as integer,",
+				"          EmploymentTypeCode as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SourceDimEmpType",
+				"SourceConformed derive(DerivedEmpTypeCode = toString(case(",
+				"        lower(trim(ASSIGNMENT_TYPE)) == 'permanent',                         'PERM',",
+				"        lower(trim(ASSIGNMENT_TYPE)) == 'fixed term contract',               'FTC',",
+				"        lower(trim(ASSIGNMENT_TYPE)) == 'fixed-term contract',               'FTC',",
+				"        lower(trim(ASSIGNMENT_TYPE)) == 'bank',                              'BANK',",
+				"        lower(trim(ASSIGNMENT_TYPE)) == 'agency worker',                     'AGENCY',",
+				"        lower(trim(ASSIGNMENT_TYPE)) == 'contractor',                        'CONTRACTOR',",
+				"        lower(trim(ASSIGNMENT_TYPE)) == 'locum',                             'LOCUM',",
+				"        lower(trim(ASSIGNMENT_TYPE)) == 'apprentice',                        'APPRENTICE',",
+				"        'PERM'",
+				"    ))) ~> DeriveEmpTypeCode",
+				"DeriveEmpTypeCode, SourceDimOrg join(WORKPLACE_ORG_NAME == CostCentre,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinOrgKey",
+				"JoinOrgKey, SourceDimPerson join(PERSON_UNIQUE_IDENTIFIER_PUID == PUID,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinPersonKey",
+				"JoinPersonKey, SourceDimPosition join(POSITION_NUMBER == PositionNumber,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinPositionKey",
+				"JoinPositionKey, SourceDimAssignment join(ASSIGNMENT_NUMBER == AssignmentNumber,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinAssignmentKey",
+				"JoinAssignmentKey, SourceDimEmpType join(DerivedEmpTypeCode == EmploymentTypeCode,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinEmpTypeKey",
+				"JoinEmpTypeKey filter(!isNull(PersonKey)",
+				"    && !isNull(AssignmentKey)",
+				"    && !isNull(OrgKey)",
+				"    && !isNull(EmploymentTypeKey)) ~> FilterValidFacts",
+				"FilterValidFacts derive(SnapshotDateKey = $p_snapshot_date_key,",
+				"          IsPrimaryAssignment = iif(upper(trim(PRIMARY_JOB)) == 'YES' || upper(trim(PRIMARY_JOB)) == 'Y', 1, 0)) ~> DeriveActiveFact",
+				"DeriveActiveFact select(mapColumn(",
+				"          SnapshotDateKey,",
+				"          PersonKey,",
+				"          AssignmentKey,",
+				"          PositionKey,",
+				"          OrgKey,",
+				"          EmploymentTypeKey,",
+				"          WTE = FTE,",
+				"          IsPrimaryAssignment",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectActiveFact",
+				"SourceConformed filter(!isNull(POSITION_NUMBER) && length(trim(POSITION_NUMBER)) > 0) ~> FilterPositionsForVacancy",
+				"FilterPositionsForVacancy aggregate(groupBy(POSITION_NUMBER,",
+				"          WORKPLACE_ORG_NAME),",
+				"     ActualWTE = sum(toDecimal(FTE, 10, 2))) ~> AggregateVacancy",
+				"AggregateVacancy, SourceDimPosition join(POSITION_NUMBER == PositionNumber,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinVacancyPositionKey",
+				"JoinVacancyPositionKey, SourceDimOrg join(WORKPLACE_ORG_NAME == CostCentre,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinVacancyKeys",
+				"JoinVacancyKeys filter(!isNull(PositionKey) && !isNull(OrgKey)) ~> FilterValidVacancy",
+				"FilterValidVacancy derive(SnapshotDateKey = $p_snapshot_date_key) ~> DeriveVacancyFact",
+				"DeriveVacancyFact select(mapColumn(",
+				"          SnapshotDateKey,",
+				"          PositionKey,",
+				"          OrgKey,",
+				"          ActualWTE",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectVacancyFact",
+				"SelectActiveFact alterRow(upsertIf(true())) ~> AlterRowActiveFact",
+				"SelectVacancyFact alterRow(upsertIf(true())) ~> AlterRowVacancyFact",
+				"AlterRowActiveFact sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          ActiveStaffFactKey as any,",
+				"          SnapshotDateKey as any,",
+				"          PersonKey as any,",
+				"          AssignmentKey as any,",
+				"          PositionKey as any,",
+				"          OrgKey as any,",
+				"          EmploymentTypeKey as any,",
+				"          WTE as decimal(10,2),",
+				"          IsPrimaryAssignment as any,",
+				"          CreatedDate as timestamp,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['SnapshotDateKey','AssignmentKey'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          SnapshotDateKey,",
+				"          PersonKey,",
+				"          AssignmentKey,",
+				"          PositionKey,",
+				"          OrgKey,",
+				"          EmploymentTypeKey,",
+				"          WTE,",
+				"          IsPrimaryAssignment",
+				"     )) ~> SinkFactActiveStaff",
+				"AlterRowVacancyFact sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          VacancyFactKey as any,",
+				"          SnapshotDateKey as any,",
+				"          PositionKey as any,",
+				"          OrgKey as any,",
+				"          BudgetedWTE as decimal(10,2),",
+				"          ActualWTE as decimal(10,2),",
+				"          VacancyWTE as decimal(11,2),",
+				"          CreatedDate as timestamp,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['SnapshotDateKey','PositionKey'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          SnapshotDateKey,",
+				"          PositionKey,",
+				"          OrgKey,",
+				"          ActualWTE",
+				"     )) ~> SinkFactVacancy"
+			]
+		}
+	}
+}

@@ -1,0 +1,184 @@
+{
+	"name": "pl_load_datamart",
+	"properties": {
+		"description": "Loads Active Staff + Vacancy Data Mart from conformed ActiveStaffFull CSV.",
+		"activities": [
+			{
+				"name": "Script_ClearSnapshot",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": {
+								"value": "DELETE FROM dbo.Fact_ActiveStaff WHERE SnapshotDateKey = @{pipeline().parameters.p_snapshot_date_key}; DELETE FROM dbo.Fact_Vacancy WHERE SnapshotDateKey = @{pipeline().parameters.p_snapshot_date_key};",
+								"type": "Expression"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ExecuteDataFlow_LoadDims",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "Script_ClearSnapshot",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_datamart_dims",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"SourceConformed": {
+								"p_filename": {
+									"value": "@pipeline().parameters.p_conformed_filename",
+									"type": "Expression"
+								},
+								"p_folder": {
+									"value": "@pipeline().parameters.p_conformed_folder",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "ExecuteDataFlow_LoadAssignments",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_LoadDims",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_datamart_assignments",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"SourceConformed": {
+								"p_filename": {
+									"value": "@pipeline().parameters.p_conformed_filename",
+									"type": "Expression"
+								},
+								"p_folder": {
+									"value": "@pipeline().parameters.p_conformed_folder",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "ExecuteDataFlow_LoadFacts",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "ExecuteDataFlow_LoadAssignments",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_datamart_facts",
+						"type": "DataFlowReference",
+						"parameters": {
+							"p_snapshot_date_key": {
+								"value": "@int(pipeline().parameters.p_snapshot_date_key)",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"SourceConformed": {
+								"p_filename": {
+									"value": "@pipeline().parameters.p_conformed_filename",
+									"type": "Expression"
+								},
+								"p_folder": {
+									"value": "@pipeline().parameters.p_conformed_folder",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"parameters": {
+			"p_conformed_filename": {
+				"type": "String",
+				"defaultValue": "20260319_ActiveStaffFull_Azure_All.csv"
+			},
+			"p_conformed_folder": {
+				"type": "String",
+				"defaultValue": "actives/staff/all"
+			},
+			"p_snapshot_date_key": {
+				"type": "String",
+				"defaultValue": "20260319"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-04-23T00:54:50Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

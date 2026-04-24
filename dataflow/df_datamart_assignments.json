@@ -1,0 +1,167 @@
+{
+	"name": "df_datamart_assignments",
+	"properties": {
+		"description": "Loads Dim_Assignment from conformed CSV. Left-joins Dim_Organisation on WORKPLACE_ORG_NAME = CostCentre and Dim_Person on PUID to resolve OrgKey and PersonKey. Upserts on AssignmentNumber. FullTimePartTime derived from FTE.",
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_conformed_activestaff",
+						"type": "DatasetReference"
+					},
+					"name": "SourceConformed",
+					"description": "Conformed ActiveStaffFull CSV."
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Dim_Organisation",
+						"type": "DatasetReference"
+					},
+					"name": "SourceDimOrg",
+					"description": "Dim_Organisation lookup — reads OrgKey, CostCentre from SQL."
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Dim_Person",
+						"type": "DatasetReference"
+					},
+					"name": "SourceDimPerson",
+					"description": "Dim_Person lookup — reads PersonKey, PUID from SQL."
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_datamart_sql_Dim_Assignment",
+						"type": "DatasetReference"
+					},
+					"name": "SinkDimAssignment",
+					"description": "Upsert Dim_Assignment on AssignmentNumber key."
+				}
+			],
+			"transformations": [
+				{
+					"name": "JoinOrgKey"
+				},
+				{
+					"name": "JoinPersonKey"
+				},
+				{
+					"name": "DeriveAssignmentAttribs"
+				},
+				{
+					"name": "SelectAssignment"
+				},
+				{
+					"name": "AlterRowAssignment"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          PERSON_UNIQUE_IDENTIFIER_PUID as string,",
+				"          ASSIGNMENT_NUMBER as string,",
+				"          PRIMARY_JOB as string,",
+				"          OFFICE_LOCATION as string,",
+				"          ASSIGNMENT_TYPE as string,",
+				"          ASSIGNMENT_STATUS as string,",
+				"          DATE_STARTED_IN_JOB as string,",
+				"          DATE_LEFT_JOB as string,",
+				"          FTE as string,",
+				"          WORKPLACE_ORG_NAME as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> SourceConformed",
+				"source(output(",
+				"          OrgKey as integer,",
+				"          CostCentre as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SourceDimOrg",
+				"source(output(",
+				"          PersonKey as integer,",
+				"          PUID as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> SourceDimPerson",
+				"SourceConformed, SourceDimOrg join(WORKPLACE_ORG_NAME == CostCentre,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinOrgKey",
+				"JoinOrgKey, SourceDimPerson join(PERSON_UNIQUE_IDENTIFIER_PUID == PUID,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'right')~> JoinPersonKey",
+				"JoinPersonKey derive(FullTimePartTime = iif(",
+				"        isNull(FTE) || length(trim(FTE)) == 0,",
+				"        toString(null()),",
+				"        iif(toDecimal(FTE, 10, 2) >= 1.0, 'Full Time', 'Part Time')",
+				"    )) ~> DeriveAssignmentAttribs",
+				"DeriveAssignmentAttribs select(mapColumn(",
+				"          AssignmentNumber = ASSIGNMENT_NUMBER,",
+				"          PersonKey,",
+				"          PrimaryJob = PRIMARY_JOB,",
+				"          OfficeLocation = OFFICE_LOCATION,",
+				"          AssignmentType = ASSIGNMENT_TYPE,",
+				"          AssignmentStatus = ASSIGNMENT_STATUS,",
+				"          DateStartedInJob = DATE_STARTED_IN_JOB,",
+				"          DateLeftJob = DATE_LEFT_JOB,",
+				"          FullTimePartTime,",
+				"          FTE,",
+				"          OrgKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectAssignment",
+				"SelectAssignment alterRow(upsertIf(true())) ~> AlterRowAssignment",
+				"AlterRowAssignment sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          AssignmentKey as any,",
+				"          AssignmentNumber as any,",
+				"          PersonKey as any,",
+				"          PrimaryJob as any,",
+				"          OfficeLocation as any,",
+				"          AssignmentType as any,",
+				"          AssignmentStatus as any,",
+				"          DateStartedInJob as timestamp,",
+				"          DateLeftJob as timestamp,",
+				"          FixedTermReason as any,",
+				"          FullTimePartTime as any,",
+				"          FTE as decimal(10,2),",
+				"          OrgKey as any,",
+				"          CreatedDate as timestamp,",
+				"          ModifiedDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['AssignmentNumber'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          AssignmentNumber,",
+				"          PersonKey,",
+				"          PrimaryJob,",
+				"          OfficeLocation,",
+				"          AssignmentType,",
+				"          AssignmentStatus,",
+				"          DateStartedInJob,",
+				"          DateLeftJob,",
+				"          FullTimePartTime,",
+				"          FTE,",
+				"          OrgKey",
+				"     )) ~> SinkDimAssignment"
+			]
+		}
+	}
+}

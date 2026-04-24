@@ -1,0 +1,35 @@
+{
+	"name": "ds_esr_actives_lrn_source",
+	"properties": {
+		"description": "ESR Actives source 3 of 3: Learning CSV. All files matching Learning_*.csv in p_folder are read (wildcard). Training records aggregated by Applicant Number (one row per employee: latest course, date, status, score) before LEFT-joining to StaffInPost on Employee Number = Applicant Number.",
+		"linkedServiceName": {
+			"referenceName": "ls_adls_stnhsdwidev",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"p_folder": {
+				"type": "String",
+				"defaultValue": "esr/2026-03-19"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@dataset().p_folder",
+					"type": "Expression"
+				},
+				"fileSystem": "raw"
+			},
+			"columnDelimiter": ",",
+			"rowDelimiter": "\n",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

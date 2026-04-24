@@ -1,0 +1,80 @@
+{
+	"name": "ds_datamart_sql_Dim_Assignment",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "AssignmentKey",
+				"type": "Integer"
+			},
+			{
+				"name": "AssignmentNumber",
+				"type": "String"
+			},
+			{
+				"name": "PersonKey",
+				"type": "Integer"
+			},
+			{
+				"name": "PrimaryJob",
+				"type": "String"
+			},
+			{
+				"name": "OfficeLocation",
+				"type": "String"
+			},
+			{
+				"name": "AssignmentType",
+				"type": "String"
+			},
+			{
+				"name": "AssignmentStatus",
+				"type": "String"
+			},
+			{
+				"name": "DateStartedInJob",
+				"type": "DateTime"
+			},
+			{
+				"name": "DateLeftJob",
+				"type": "DateTime"
+			},
+			{
+				"name": "FixedTermReason",
+				"type": "String"
+			},
+			{
+				"name": "FullTimePartTime",
+				"type": "String"
+			},
+			{
+				"name": "FTE",
+				"type": "Decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "OrgKey",
+				"type": "Integer"
+			},
+			{
+				"name": "CreatedDate",
+				"type": "DateTime"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "DateTime"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Dim_Assignment"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
