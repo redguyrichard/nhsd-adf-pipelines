@@ -1,0 +1,126 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-peopledigital-dev"
+		},
+		"ls_sqldb_sqldb-nhsdwi-dev_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_sqldb_sqldb-nhsdwi-dev'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=sql-nhsdwi-dev.database.windows.net;Initial Catalog=sqldb-nhsdwi-dev"
+		},
+		"ls_adls_stnhsdwidev_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stnhsdwidev.dfs.core.windows.net"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_all_output_folder": {
+			"type": "string",
+			"defaultValue": "actives/pp/all"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_vpd_output_folder": {
+			"type": "string",
+			"defaultValue": "actives/pp/185"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_run_date": {
+			"type": "string",
+			"defaultValue": "@trigger().scheduledTime"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_source_folder": {
+			"type": "string",
+			"defaultValue": "@concat('esr/', formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd'))"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_all_output_folder": {
+			"type": "string",
+			"defaultValue": "actives/staff/all"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_vpd_output_folder": {
+			"type": "string",
+			"defaultValue": "actives/staff/185"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_vpd_code": {
+			"type": "string",
+			"defaultValue": "185"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "adf-peopledigital-dev_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"ls_sqldb_sqldb-nhsdwi-dev_connectionString": {
+						"value": "[parameters('ls_sqldb_sqldb-nhsdwi-dev_connectionString')]"
+					},
+					"ls_adls_stnhsdwidev_properties_typeProperties_url": {
+						"value": "[parameters('ls_adls_stnhsdwidev_properties_typeProperties_url')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "adf-peopledigital-dev_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_all_output_folder": {
+						"value": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_all_output_folder')]"
+					},
+					"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_vpd_output_folder": {
+						"value": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_vpd_output_folder')]"
+					},
+					"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_run_date": {
+						"value": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_run_date')]"
+					},
+					"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_source_folder": {
+						"value": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_source_folder')]"
+					},
+					"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_all_output_folder": {
+						"value": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_all_output_folder')]"
+					},
+					"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_vpd_output_folder": {
+						"value": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_vpd_output_folder')]"
+					},
+					"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_vpd_code": {
+						"value": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_vpd_code')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'adf-peopledigital-dev_ArmTemplate_0')]"
+			]
+		}
+	]
+}

@@ -1,0 +1,3849 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-peopledigital-dev"
+		},
+		"ls_sqldb_sqldb-nhsdwi-dev_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_sqldb_sqldb-nhsdwi-dev'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=sql-nhsdwi-dev.database.windows.net;Initial Catalog=sqldb-nhsdwi-dev"
+		},
+		"ls_adls_stnhsdwidev_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stnhsdwidev.dfs.core.windows.net"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_all_output_folder": {
+			"type": "string",
+			"defaultValue": "actives/pp/all"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_vpd_output_folder": {
+			"type": "string",
+			"defaultValue": "actives/pp/185"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_run_date": {
+			"type": "string",
+			"defaultValue": "@trigger().scheduledTime"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_source_folder": {
+			"type": "string",
+			"defaultValue": "@concat('esr/', formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd'))"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_all_output_folder": {
+			"type": "string",
+			"defaultValue": "actives/staff/all"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_vpd_output_folder": {
+			"type": "string",
+			"defaultValue": "actives/staff/185"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_vpd_code": {
+			"type": "string",
+			"defaultValue": "185"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_esr_actives_daily')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Daily ESR Actives ETL: reads all StaffInPost_*.csv, PositionsAnalysis_*.csv and Learning_*.csv from p_source_folder; runs df_transform_esr_actives (3-source join); writes Active Staff Full (V0.1) and Patient Privacy Workforce (V0.2) as all-VPD and VPD-filtered outputs; archives source files. Output filenames: YYYYMMDD_ActiveStaffFull_Azure.csv and YYYYMMDD_PatientPrivacyWorkforce_Azure.csv.",
+				"activities": [
+					{
+						"name": "ClearWorking_StaffAll",
+						"type": "Delete",
+						"dependsOn": [],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*"
+							}
+						}
+					},
+					{
+						"name": "ClearWorking_StaffVPD",
+						"type": "Delete",
+						"dependsOn": [],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*"
+							}
+						}
+					},
+					{
+						"name": "ClearWorking_PPAll",
+						"type": "Delete",
+						"dependsOn": [],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*"
+							}
+						}
+					},
+					{
+						"name": "ClearWorking_PPVPD",
+						"type": "Delete",
+						"dependsOn": [],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*"
+							}
+						}
+					},
+					{
+						"name": "ExecuteDataFlow_TransformActives",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ClearWorking_StaffAll",
+								"dependencyConditions": [
+									"Succeeded",
+									"Failed"
+								]
+							},
+							{
+								"activity": "ClearWorking_StaffVPD",
+								"dependencyConditions": [
+									"Succeeded",
+									"Failed"
+								]
+							},
+							{
+								"activity": "ClearWorking_PPAll",
+								"dependencyConditions": [
+									"Succeeded",
+									"Failed"
+								]
+							},
+							{
+								"activity": "ClearWorking_PPVPD",
+								"dependencyConditions": [
+									"Succeeded",
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_transform_esr_actives",
+								"type": "DataFlowReference",
+								"parameters": {
+									"vpd_code": {
+										"value": "@int(pipeline().parameters.p_vpd_code)",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"SourceSIP": {
+										"p_folder": {
+											"value": "@concat(pipeline().parameters.p_source_folder, '/sip')",
+											"type": "Expression"
+										}
+									},
+									"SourcePOS": {
+										"p_folder": {
+											"value": "@concat(pipeline().parameters.p_source_folder, '/pos')",
+											"type": "Expression"
+										}
+									},
+									"SourceLRN": {
+										"p_folder": {
+											"value": "@concat(pipeline().parameters.p_source_folder, '/lrn')",
+											"type": "Expression"
+										}
+									},
+									"SinkStaffAll": {
+										"p_output_filename": {
+											"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_All.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+											"type": "Expression"
+										}
+									},
+									"SinkStaffVPD": {
+										"p_output_filename": {
+											"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+											"type": "Expression"
+										}
+									},
+									"SinkPPAll": {
+										"p_output_filename": {
+											"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_All.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+											"type": "Expression"
+										}
+									},
+									"SinkPPVPD": {
+										"p_output_filename": {
+											"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+											"type": "Expression"
+										},
+										"p_output_folder": {
+											"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+											"type": "Expression"
+										}
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "CopyToArchive_SIP",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_TransformActives",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"wildcardFolderPath": {
+										"value": "@concat(pipeline().parameters.p_source_folder, '/sip')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*.csv"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": null
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_esr_actives_sip_source",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@pipeline().parameters.p_source_folder",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_esr_actives_csv_archive",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_archive_folder": {
+										"value": "@concat('esr/', formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'))",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "CopyToArchive_POS",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_TransformActives",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"wildcardFolderPath": {
+										"value": "@concat(pipeline().parameters.p_source_folder, '/pos')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*.csv"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": null
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_esr_actives_pos_source",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@pipeline().parameters.p_source_folder",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_esr_actives_csv_archive",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_archive_folder": {
+										"value": "@concat('esr/', formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'))",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "CopyToArchive_LRN",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_TransformActives",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"wildcardFolderPath": {
+										"value": "@concat(pipeline().parameters.p_source_folder, '/lrn')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*.csv"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": null
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_esr_actives_lrn_source",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@pipeline().parameters.p_source_folder",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_esr_actives_csv_archive",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_archive_folder": {
+										"value": "@concat('esr/', formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'))",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "CopyRename_StaffAll",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_TransformActives",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"wildcardFolderPath": {
+										"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "part-*.csv"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": null
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_esr_actives_staff_all_output",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_output_filename": {
+										"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_All.csv')",
+										"type": "Expression"
+									},
+									"p_output_folder": {
+										"value": "@pipeline().parameters.p_staff_all_output_folder",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "CopyRename_StaffVPD",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_TransformActives",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"wildcardFolderPath": {
+										"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "part-*.csv"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": null
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_esr_actives_staff_vpd_output",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_output_filename": {
+										"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+										"type": "Expression"
+									},
+									"p_output_folder": {
+										"value": "@pipeline().parameters.p_staff_vpd_output_folder",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "CopyRename_PPAll",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_TransformActives",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"wildcardFolderPath": {
+										"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "part-*.csv"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": null
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_esr_actives_pp_all_output",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_output_filename": {
+										"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_All.csv')",
+										"type": "Expression"
+									},
+									"p_output_folder": {
+										"value": "@pipeline().parameters.p_pp_all_output_folder",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "CopyRename_PPVPD",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_TransformActives",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": false,
+									"wildcardFolderPath": {
+										"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+										"type": "Expression"
+									},
+									"wildcardFileName": "part-*.csv"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": null
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_esr_actives_pp_vpd_output",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_output_filename": {
+										"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+										"type": "Expression"
+									},
+									"p_output_folder": {
+										"value": "@pipeline().parameters.p_pp_vpd_output_folder",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "CleanWorking_StaffAll",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "CopyRename_StaffAll",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_staff_all_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*"
+							}
+						}
+					},
+					{
+						"name": "CleanWorking_StaffVPD",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "CopyRename_StaffVPD",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_staff_vpd_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*"
+							}
+						}
+					},
+					{
+						"name": "CleanWorking_PPAll",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "CopyRename_PPAll",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_pp_all_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*"
+							}
+						}
+					},
+					{
+						"name": "CleanWorking_PPVPD",
+						"type": "Delete",
+						"dependsOn": [
+							{
+								"activity": "CopyRename_PPVPD",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_esr_actives_conformed_folder",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folder": {
+										"value": "@concat(pipeline().parameters.p_pp_vpd_output_folder, '/_working')",
+										"type": "Expression"
+									}
+								}
+							},
+							"enableLogging": false,
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"wildcardFileName": "*"
+							}
+						}
+					},
+					{
+						"name": "IfCondition_CarryForward",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_TransformActives",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(empty(pipeline().parameters.p_fallback_date))",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "CarryForward_StaffAll",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": null
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_esr_actives_staff_all_output",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_output_filename": {
+													"value": "@concat(pipeline().parameters.p_fallback_date,'_ActiveStaffFull_Azure_All.csv')",
+													"type": "Expression"
+												},
+												"p_output_folder": {
+													"value": "@pipeline().parameters.p_staff_all_output_folder",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_esr_actives_staff_all_output",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_output_filename": {
+													"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_All.csv')",
+													"type": "Expression"
+												},
+												"p_output_folder": {
+													"value": "@pipeline().parameters.p_staff_all_output_folder",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "CarryForward_StaffVPD",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": null
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_esr_actives_staff_vpd_output",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_output_filename": {
+													"value": "@concat(pipeline().parameters.p_fallback_date,'_ActiveStaffFull_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+													"type": "Expression"
+												},
+												"p_output_folder": {
+													"value": "@pipeline().parameters.p_staff_vpd_output_folder",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_esr_actives_staff_vpd_output",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_output_filename": {
+													"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_ActiveStaffFull_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+													"type": "Expression"
+												},
+												"p_output_folder": {
+													"value": "@pipeline().parameters.p_staff_vpd_output_folder",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "CarryForward_PPAll",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": null
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_esr_actives_pp_all_output",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_output_filename": {
+													"value": "@concat(pipeline().parameters.p_fallback_date,'_PatientPrivacyWorkforce_Azure_All.csv')",
+													"type": "Expression"
+												},
+												"p_output_folder": {
+													"value": "@pipeline().parameters.p_pp_all_output_folder",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_esr_actives_pp_all_output",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_output_filename": {
+													"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_All.csv')",
+													"type": "Expression"
+												},
+												"p_output_folder": {
+													"value": "@pipeline().parameters.p_pp_all_output_folder",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "CarryForward_PPVPD",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": null
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_esr_actives_pp_vpd_output",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_output_filename": {
+													"value": "@concat(pipeline().parameters.p_fallback_date,'_PatientPrivacyWorkforce_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+													"type": "Expression"
+												},
+												"p_output_folder": {
+													"value": "@pipeline().parameters.p_pp_vpd_output_folder",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_esr_actives_pp_vpd_output",
+											"type": "DatasetReference",
+											"parameters": {
+												"p_output_filename": {
+													"value": "@concat(formatDateTime(convertTimeZone(pipeline().parameters.p_run_date,'UTC','GMT Standard Time'),'yyyyMMdd'),'_PatientPrivacyWorkforce_Azure_',pipeline().parameters.p_vpd_code,'.csv')",
+													"type": "Expression"
+												},
+												"p_output_folder": {
+													"value": "@pipeline().parameters.p_pp_vpd_output_folder",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_fallback_date": {
+						"type": "String"
+					},
+					"p_pp_all_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/pp/all"
+					},
+					"p_pp_vpd_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/pp/185"
+					},
+					"p_run_date": {
+						"type": "String",
+						"defaultValue": "2026-04-01T00:00:00Z"
+					},
+					"p_source_folder": {
+						"type": "String",
+						"defaultValue": "esr/2026-04-01"
+					},
+					"p_staff_all_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/all"
+					},
+					"p_staff_vpd_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/185"
+					},
+					"p_vpd_code": {
+						"type": "String",
+						"defaultValue": "185"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-04-23T00:54:50Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_conformed_folder')]",
+				"[concat(variables('factoryId'), '/dataflows/df_transform_esr_actives')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_sip_source')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_csv_archive')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_pos_source')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_lrn_source')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_staff_all_output')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_staff_vpd_output')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_pp_all_output')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_pp_vpd_output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_load_datamart')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Loads Active Staff + Vacancy Data Mart from conformed ActiveStaffFull CSV.",
+				"activities": [
+					{
+						"name": "Script_ClearSnapshot",
+						"type": "Script",
+						"dependsOn": [],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "NonQuery",
+									"text": {
+										"value": "DELETE FROM dbo.Fact_ActiveStaff WHERE SnapshotDateKey = @{pipeline().parameters.p_snapshot_date_key}; DELETE FROM dbo.Fact_Vacancy WHERE SnapshotDateKey = @{pipeline().parameters.p_snapshot_date_key};",
+										"type": "Expression"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "ExecuteDataFlow_LoadDims",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Script_ClearSnapshot",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_datamart_dims",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SourceConformed": {
+										"p_filename": {
+											"value": "@pipeline().parameters.p_conformed_filename",
+											"type": "Expression"
+										},
+										"p_folder": {
+											"value": "@pipeline().parameters.p_conformed_folder",
+											"type": "Expression"
+										}
+									},
+									"SinkDimOrganisation": {},
+									"SinkDimPerson": {},
+									"SinkDimPosition": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "ExecuteDataFlow_LoadAssignments",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_LoadDims",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_datamart_assignments",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"SourceConformed": {
+										"p_filename": {
+											"value": "@pipeline().parameters.p_conformed_filename",
+											"type": "Expression"
+										},
+										"p_folder": {
+											"value": "@pipeline().parameters.p_conformed_folder",
+											"type": "Expression"
+										}
+									},
+									"SourceDimOrg": {},
+									"SourceDimPerson": {},
+									"SinkDimAssignment": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "ExecuteDataFlow_LoadFacts",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "ExecuteDataFlow_LoadAssignments",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "df_datamart_facts",
+								"type": "DataFlowReference",
+								"parameters": {
+									"p_snapshot_date_key": {
+										"value": "@int(pipeline().parameters.p_snapshot_date_key)",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"SourceConformed": {
+										"p_filename": {
+											"value": "@pipeline().parameters.p_conformed_filename",
+											"type": "Expression"
+										},
+										"p_folder": {
+											"value": "@pipeline().parameters.p_conformed_folder",
+											"type": "Expression"
+										}
+									},
+									"SourceDimOrg": {},
+									"SourceDimPerson": {},
+									"SourceDimPosition": {},
+									"SourceDimAssignment": {},
+									"SourceDimEmpType": {},
+									"SinkFactActiveStaff": {},
+									"SinkFactVacancy": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_conformed_filename": {
+						"type": "String",
+						"defaultValue": "20260319_ActiveStaffFull_Azure_All.csv"
+					},
+					"p_conformed_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/all"
+					},
+					"p_snapshot_date_key": {
+						"type": "String",
+						"defaultValue": "20260319"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-04-23T00:54:50Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]",
+				"[concat(variables('factoryId'), '/dataflows/df_datamart_dims')]",
+				"[concat(variables('factoryId'), '/dataflows/df_datamart_assignments')]",
+				"[concat(variables('factoryId'), '/dataflows/df_datamart_facts')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_conformed_activestaff')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Source for pl_load_datamart. Reads the conformed ActiveStaffFull CSV produced by pl_esr_actives_daily. p_folder = conformed sub-path (e.g. actives/staff/all); p_filename = YYYYMMDD_ActiveStaffFull_Azure_All.csv.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_filename": {
+						"type": "String",
+						"defaultValue": "20260319_ActiveStaffFull_Azure_All.csv"
+					},
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/all"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_Assignment')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "AssignmentKey",
+						"type": "Integer"
+					},
+					{
+						"name": "AssignmentNumber",
+						"type": "String"
+					},
+					{
+						"name": "PersonKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PrimaryJob",
+						"type": "String"
+					},
+					{
+						"name": "OfficeLocation",
+						"type": "String"
+					},
+					{
+						"name": "AssignmentType",
+						"type": "String"
+					},
+					{
+						"name": "AssignmentStatus",
+						"type": "String"
+					},
+					{
+						"name": "DateStartedInJob",
+						"type": "DateTime"
+					},
+					{
+						"name": "DateLeftJob",
+						"type": "DateTime"
+					},
+					{
+						"name": "FixedTermReason",
+						"type": "String"
+					},
+					{
+						"name": "FullTimePartTime",
+						"type": "String"
+					},
+					{
+						"name": "FTE",
+						"type": "Decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "OrgKey",
+						"type": "Integer"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_Assignment"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_EmploymentType')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "EmploymentTypeKey",
+						"type": "Integer"
+					},
+					{
+						"name": "EmploymentTypeCode",
+						"type": "String"
+					},
+					{
+						"name": "EmploymentTypeName",
+						"type": "String"
+					},
+					{
+						"name": "Category",
+						"type": "String"
+					},
+					{
+						"name": "IsPermanent",
+						"type": "Boolean"
+					},
+					{
+						"name": "IsContingent",
+						"type": "Boolean"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "IsActive",
+						"type": "Boolean"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_EmploymentType"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_Organisation')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "OrgKey",
+						"type": "Integer"
+					},
+					{
+						"name": "CostCentre",
+						"type": "String"
+					},
+					{
+						"name": "Service",
+						"type": "String"
+					},
+					{
+						"name": "Division",
+						"type": "String"
+					},
+					{
+						"name": "Directorate",
+						"type": "String"
+					},
+					{
+						"name": "CareGroup",
+						"type": "String"
+					},
+					{
+						"name": "Department",
+						"type": "String"
+					},
+					{
+						"name": "TrustVPD",
+						"type": "String"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "IsActive",
+						"type": "Boolean"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_Organisation"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_Person')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "PersonKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PUID",
+						"type": "String"
+					},
+					{
+						"name": "EmployeeNumber",
+						"type": "String"
+					},
+					{
+						"name": "Forename",
+						"type": "String"
+					},
+					{
+						"name": "Surname",
+						"type": "String"
+					},
+					{
+						"name": "Title",
+						"type": "String"
+					},
+					{
+						"name": "Gender",
+						"type": "String"
+					},
+					{
+						"name": "DateOfBirth",
+						"type": "DateTime"
+					},
+					{
+						"name": "MaritalStatus",
+						"type": "String"
+					},
+					{
+						"name": "LatestStartDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "NHSEntryDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "OriginalHireDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "LengthOfServiceYears",
+						"type": "Decimal",
+						"precision": 5,
+						"scale": 2
+					},
+					{
+						"name": "TrustVPD",
+						"type": "String"
+					},
+					{
+						"name": "AgeBand",
+						"type": "String"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "IsActive",
+						"type": "Boolean"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_Person"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_Position')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "PositionKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PositionNumber",
+						"type": "String"
+					},
+					{
+						"name": "KnownAsJobTitle",
+						"type": "String"
+					},
+					{
+						"name": "FormalJobTitle",
+						"type": "String"
+					},
+					{
+						"name": "AreaOfWork",
+						"type": "String"
+					},
+					{
+						"name": "SubjectiveCode",
+						"type": "String"
+					},
+					{
+						"name": "JobStaffGroup",
+						"type": "String"
+					},
+					{
+						"name": "JobRole",
+						"type": "String"
+					},
+					{
+						"name": "OccupationCode",
+						"type": "String"
+					},
+					{
+						"name": "FrontlineHealthcareWorker",
+						"type": "String"
+					},
+					{
+						"name": "PayGrade",
+						"type": "String"
+					},
+					{
+						"name": "HiringStatus",
+						"type": "String"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_Position"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Fact_ActiveStaff')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ActiveStaffFactKey",
+						"type": "Integer"
+					},
+					{
+						"name": "SnapshotDateKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PersonKey",
+						"type": "Integer"
+					},
+					{
+						"name": "AssignmentKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PositionKey",
+						"type": "Integer"
+					},
+					{
+						"name": "OrgKey",
+						"type": "Integer"
+					},
+					{
+						"name": "EmploymentTypeKey",
+						"type": "Integer"
+					},
+					{
+						"name": "WTE",
+						"type": "Decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "IsPrimaryAssignment",
+						"type": "Boolean"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Fact_ActiveStaff"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Fact_Vacancy')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "VacancyFactKey",
+						"type": "Integer"
+					},
+					{
+						"name": "SnapshotDateKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PositionKey",
+						"type": "Integer"
+					},
+					{
+						"name": "OrgKey",
+						"type": "Integer"
+					},
+					{
+						"name": "BudgetedWTE",
+						"type": "Decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "ActualWTE",
+						"type": "Decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "VacancyWTE",
+						"type": "Decimal",
+						"precision": 11,
+						"scale": 2
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Fact_Vacancy"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_conformed_folder')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Generic folder-scoped dataset in conformed container. p_folder drives the path; no filename. Shared by all ClearWorking/CleanWorking Delete and CopyRename source activities.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "actives"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_csv_archive')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Archive dataset — folder-level sink (no filename). Wildcard copy writes each source file to this folder with its original name preserved. Shared by all three archive copy activities (SIP, POS, LRN).",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_archive_folder": {
+						"type": "String",
+						"defaultValue": "esr/20260319"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_archive_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "archive"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_lrn_source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ESR Actives source 3 of 3: Learning CSV. All files matching Learning_*.csv in p_folder are read (wildcard). Training records aggregated by Applicant Number (one row per employee: latest course, date, status, score) before LEFT-joining to StaffInPost on Employee Number = Applicant Number.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "esr/2026-03-19"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_pos_source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ESR Actives source 2 of 3: PositionsAnalysis CSV. All files matching PositionsAnalysis_*.csv in p_folder are read (wildcard). Position metadata: job title, staff group, occupation code, hiring status and org hierarchy (Org L3-L6). LEFT-joined to StaffInPost on Position Number = Position.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "esr/2026-03-19"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_pp_all_output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Output 2a: Patient Privacy Workforce — all-VPD consolidated CSV. Schema per Active Patient Privacy Staff Data Product Mapping Spec V0.2 (subset of Active Staff Full; no Prof Reg/DBS/Visa fields). Path: conformed/actives/pp/all/.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_output_filename": {
+						"type": "String",
+						"defaultValue": "20260401_PatientPrivacyWorkforce_Azure_All.csv"
+					},
+					"p_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/pp/all"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_output_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_output_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_pp_vpd_output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Output 2b: Patient Privacy Workforce — single VPD filtered CSV. Schema per Active Patient Privacy Staff Data Product Mapping Spec V0.2. Path: conformed/actives/pp/<vpd_code>/.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_output_filename": {
+						"type": "String",
+						"defaultValue": "20260401_PatientPrivacyWorkforce_Azure_185.csv"
+					},
+					"p_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/pp/185"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_output_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_output_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_sip_source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ESR Actives source 1 of 3: StaffInPost CSV. All files matching StaffInPost_*.csv in p_folder are read (wildcard) — supports any number of per-VPD files. Payroll Name first 3 chars is used to derive TRUST_VPD.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "esr/2026-03-19"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_staff_all_output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Output 1a: Active Staff Full — all-VPD consolidated CSV. Schema per Active Staff Data Product Mapping Spec V0.1. Path: conformed/actives/staff/all/.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_output_filename": {
+						"type": "String",
+						"defaultValue": "20260401_ActiveStaffFull_Azure_All.csv"
+					},
+					"p_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/all"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_output_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_output_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_staff_vpd_output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Output 1b: Active Staff Full — single VPD filtered CSV. Schema per Active Staff Data Product Mapping Spec V0.1. Path: conformed/actives/staff/<vpd_code>/.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_output_filename": {
+						"type": "String",
+						"defaultValue": "20260401_ActiveStaffFull_Azure_185.csv"
+					},
+					"p_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/185"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_output_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_output_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_adls_stnhsdwidev')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_adls_stnhsdwidev_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sqldb_sqldb-nhsdwi-dev')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_sqldb_sqldb-nhsdwi-dev_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/tr_daily_esr_actives')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Daily schedule trigger for pl_esr_actives_daily. Fires at 01:00 UTC (1:00am GMT). Created in STOPPED state — activate manually after testing is complete.",
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_esr_actives_daily",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"p_pp_all_output_folder": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_all_output_folder')]",
+							"p_pp_vpd_output_folder": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_vpd_output_folder')]",
+							"p_run_date": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_run_date')]",
+							"p_source_folder": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_source_folder')]",
+							"p_staff_all_output_folder": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_all_output_folder')]",
+							"p_staff_vpd_output_folder": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_vpd_output_folder')]",
+							"p_vpd_code": "[parameters('tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_vpd_code')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2026-04-02T01:00:00Z",
+						"timeZone": "UTC"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_esr_actives_daily')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_datamart_assignments')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Loads Dim_Assignment from conformed CSV. Left-joins Dim_Organisation on WORKPLACE_ORG_NAME = CostCentre and Dim_Person on PUID to resolve OrgKey and PersonKey. Upserts on AssignmentNumber. FullTimePartTime derived from FTE.",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_conformed_activestaff",
+								"type": "DatasetReference"
+							},
+							"name": "SourceConformed",
+							"description": "Conformed ActiveStaffFull CSV."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Organisation",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimOrg",
+							"description": "Dim_Organisation lookup — reads OrgKey, CostCentre from SQL."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Person",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimPerson",
+							"description": "Dim_Person lookup — reads PersonKey, PUID from SQL."
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Assignment",
+								"type": "DatasetReference"
+							},
+							"name": "SinkDimAssignment",
+							"description": "Upsert Dim_Assignment on AssignmentNumber key."
+						}
+					],
+					"transformations": [
+						{
+							"name": "JoinOrgKey"
+						},
+						{
+							"name": "JoinPersonKey"
+						},
+						{
+							"name": "DeriveAssignmentAttribs"
+						},
+						{
+							"name": "SelectAssignment"
+						},
+						{
+							"name": "AlterRowAssignment"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          PERSON_UNIQUE_IDENTIFIER_PUID as string,",
+						"          ASSIGNMENT_NUMBER as string,",
+						"          PRIMARY_JOB as string,",
+						"          OFFICE_LOCATION as string,",
+						"          ASSIGNMENT_TYPE as string,",
+						"          ASSIGNMENT_STATUS as string,",
+						"          DATE_STARTED_IN_JOB as string,",
+						"          DATE_LEFT_JOB as string,",
+						"          FTE as string,",
+						"          WORKPLACE_ORG_NAME as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SourceConformed",
+						"source(output(",
+						"          OrgKey as integer,",
+						"          CostCentre as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimOrg",
+						"source(output(",
+						"          PersonKey as integer,",
+						"          PUID as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimPerson",
+						"SourceConformed, SourceDimOrg join(WORKPLACE_ORG_NAME == CostCentre,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinOrgKey",
+						"JoinOrgKey, SourceDimPerson join(PERSON_UNIQUE_IDENTIFIER_PUID == PUID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinPersonKey",
+						"JoinPersonKey derive(FullTimePartTime = iif(",
+						"        isNull(FTE) || length(trim(FTE)) == 0,",
+						"        toString(null()),",
+						"        iif(toDecimal(FTE, 10, 2) >= 1.0, 'Full Time', 'Part Time')",
+						"    )) ~> DeriveAssignmentAttribs",
+						"DeriveAssignmentAttribs select(mapColumn(",
+						"          AssignmentNumber = ASSIGNMENT_NUMBER,",
+						"          PersonKey,",
+						"          PrimaryJob = PRIMARY_JOB,",
+						"          OfficeLocation = OFFICE_LOCATION,",
+						"          AssignmentType = ASSIGNMENT_TYPE,",
+						"          AssignmentStatus = ASSIGNMENT_STATUS,",
+						"          DateStartedInJob = DATE_STARTED_IN_JOB,",
+						"          DateLeftJob = DATE_LEFT_JOB,",
+						"          FullTimePartTime,",
+						"          FTE,",
+						"          OrgKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectAssignment",
+						"SelectAssignment alterRow(upsertIf(true())) ~> AlterRowAssignment",
+						"AlterRowAssignment sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          AssignmentKey as any,",
+						"          AssignmentNumber as any,",
+						"          PersonKey as any,",
+						"          PrimaryJob as any,",
+						"          OfficeLocation as any,",
+						"          AssignmentType as any,",
+						"          AssignmentStatus as any,",
+						"          DateStartedInJob as timestamp,",
+						"          DateLeftJob as timestamp,",
+						"          FixedTermReason as any,",
+						"          FullTimePartTime as any,",
+						"          FTE as decimal(10,2),",
+						"          OrgKey as any,",
+						"          CreatedDate as timestamp,",
+						"          ModifiedDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['AssignmentNumber'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          AssignmentNumber,",
+						"          PersonKey,",
+						"          PrimaryJob,",
+						"          OfficeLocation,",
+						"          AssignmentType,",
+						"          AssignmentStatus,",
+						"          DateStartedInJob,",
+						"          DateLeftJob,",
+						"          FullTimePartTime,",
+						"          FTE,",
+						"          OrgKey",
+						"     )) ~> SinkDimAssignment"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_conformed_activestaff')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Organisation')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Person')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Assignment')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_datamart_dims')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Loads Dim_Organisation, Dim_Person and Dim_Position from conformed ActiveStaffFull CSV. Upserts on natural keys. CostCentre = WORKPLACE_ORG_NAME (temp key). Org L2-L5 = NULL until conformed CSV is extended.",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_conformed_activestaff",
+								"type": "DatasetReference"
+							},
+							"name": "SourceConformed",
+							"description": "Conformed ActiveStaffFull CSV — output of pl_esr_actives_daily."
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Organisation",
+								"type": "DatasetReference"
+							},
+							"name": "SinkDimOrganisation",
+							"description": "Upsert Dim_Organisation on CostCentre key."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Person",
+								"type": "DatasetReference"
+							},
+							"name": "SinkDimPerson",
+							"description": "Upsert Dim_Person on PUID key (SCD Type 1 — overwrite on re-load)."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Position",
+								"type": "DatasetReference"
+							},
+							"name": "SinkDimPosition",
+							"description": "Upsert Dim_Position on PositionNumber key."
+						}
+					],
+					"transformations": [
+						{
+							"name": "DeduplicateOrg"
+						},
+						{
+							"name": "SelectOrg"
+						},
+						{
+							"name": "FilterValidPositions"
+						},
+						{
+							"name": "DeduplicatePosition"
+						},
+						{
+							"name": "SelectPosition"
+						},
+						{
+							"name": "SelectPerson"
+						},
+						{
+							"name": "AlterRowOrg"
+						},
+						{
+							"name": "AlterRowPerson"
+						},
+						{
+							"name": "AlterRowPosition"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          PERSON_UNIQUE_IDENTIFIER_PUID as string,",
+						"          EMPLOYEE_NUMBER as string,",
+						"          FORENAME as string,",
+						"          SURNAME as string,",
+						"          TITLE as string,",
+						"          GENDER as string,",
+						"          DATE_OF_BIRTH as string,",
+						"          MARITAL_PARTNERSHIP_STATUS as string,",
+						"          LATEST_START_DATE as string,",
+						"          NHS_ENTRY_DATE as string,",
+						"          ORIGINAL_HIRE_DATE as string,",
+						"          TRUST_VPD as string,",
+						"          ASSIGNMENT_NUMBER as string,",
+						"          PRIMARY_JOB as string,",
+						"          OFFICE_LOCATION as string,",
+						"          ASSIGNMENT_TYPE as string,",
+						"          ASSIGNMENT_STATUS as string,",
+						"          FTE as string,",
+						"          DATE_STARTED_IN_JOB as string,",
+						"          DATE_LEFT_JOB as string,",
+						"          POSITION_NUMBER as string,",
+						"          KNOWN_AS_JOB_TITLE as string,",
+						"          FORMAL_JOB_TITLE as string,",
+						"          AREA_OF_WORK as string,",
+						"          JOB_STAFF_GROUP as string,",
+						"          JOB_ROLE as string,",
+						"          OCCUPATION_CODE as string,",
+						"          HIRING_STATUS as string,",
+						"          WORKPLACE_ORG_NAME as string,",
+						"          DEPARTMENT as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SourceConformed",
+						"SourceConformed aggregate(groupBy(WORKPLACE_ORG_NAME,",
+						"          DEPARTMENT,",
+						"          TRUST_VPD),",
+						"     RowCount = count()) ~> DeduplicateOrg",
+						"DeduplicateOrg select(mapColumn(",
+						"          CostCentre = WORKPLACE_ORG_NAME,",
+						"          Department = DEPARTMENT,",
+						"          TrustVPD = TRUST_VPD",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectOrg",
+						"SourceConformed filter(!isNull(POSITION_NUMBER) && length(trim(POSITION_NUMBER)) > 0) ~> FilterValidPositions",
+						"FilterValidPositions aggregate(groupBy(POSITION_NUMBER),",
+						"     KnownAsJobTitle = first(KNOWN_AS_JOB_TITLE),",
+						"          FormalJobTitle = first(FORMAL_JOB_TITLE),",
+						"          AreaOfWork = first(AREA_OF_WORK),",
+						"          JobStaffGroup = first(JOB_STAFF_GROUP),",
+						"          JobRole = first(JOB_ROLE),",
+						"          OccupationCode = first(OCCUPATION_CODE),",
+						"          HiringStatus = first(HIRING_STATUS)) ~> DeduplicatePosition",
+						"DeduplicatePosition select(mapColumn(",
+						"          PositionNumber = POSITION_NUMBER,",
+						"          KnownAsJobTitle,",
+						"          FormalJobTitle,",
+						"          AreaOfWork,",
+						"          JobStaffGroup,",
+						"          JobRole,",
+						"          OccupationCode,",
+						"          HiringStatus",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectPosition",
+						"SourceConformed select(mapColumn(",
+						"          PUID = PERSON_UNIQUE_IDENTIFIER_PUID,",
+						"          EmployeeNumber = EMPLOYEE_NUMBER,",
+						"          Forename = FORENAME,",
+						"          Surname = SURNAME,",
+						"          Title = TITLE,",
+						"          Gender = GENDER,",
+						"          DateOfBirth = DATE_OF_BIRTH,",
+						"          MaritalStatus = MARITAL_PARTNERSHIP_STATUS,",
+						"          LatestStartDate = LATEST_START_DATE,",
+						"          NHSEntryDate = NHS_ENTRY_DATE,",
+						"          OriginalHireDate = ORIGINAL_HIRE_DATE,",
+						"          TrustVPD = TRUST_VPD",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectPerson",
+						"SelectOrg alterRow(upsertIf(true())) ~> AlterRowOrg",
+						"SelectPerson alterRow(upsertIf(true())) ~> AlterRowPerson",
+						"SelectPosition alterRow(upsertIf(true())) ~> AlterRowPosition",
+						"AlterRowOrg sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          OrgKey as any,",
+						"          CostCentre as any,",
+						"          Service as any,",
+						"          Division as any,",
+						"          Directorate as any,",
+						"          CareGroup as any,",
+						"          Department as any,",
+						"          TrustVPD as any,",
+						"          CreatedDate as timestamp,",
+						"          ModifiedDate as timestamp,",
+						"          IsActive as any",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['CostCentre'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          CostCentre,",
+						"          Department,",
+						"          TrustVPD",
+						"     )) ~> SinkDimOrganisation",
+						"AlterRowPerson sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          PersonKey as any,",
+						"          PUID as any,",
+						"          EmployeeNumber as any,",
+						"          Forename as any,",
+						"          Surname as any,",
+						"          Title as any,",
+						"          Gender as any,",
+						"          DateOfBirth as timestamp,",
+						"          MaritalStatus as any,",
+						"          LatestStartDate as timestamp,",
+						"          NHSEntryDate as timestamp,",
+						"          OriginalHireDate as timestamp,",
+						"          LengthOfServiceYears as decimal(5,2),",
+						"          TrustVPD as any,",
+						"          AgeBand as any,",
+						"          CreatedDate as timestamp,",
+						"          ModifiedDate as timestamp,",
+						"          IsActive as any",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['PUID'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          PUID,",
+						"          EmployeeNumber,",
+						"          Forename,",
+						"          Surname,",
+						"          Title,",
+						"          Gender,",
+						"          DateOfBirth,",
+						"          MaritalStatus,",
+						"          LatestStartDate,",
+						"          NHSEntryDate,",
+						"          OriginalHireDate,",
+						"          TrustVPD",
+						"     )) ~> SinkDimPerson",
+						"AlterRowPosition sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          PositionKey as any,",
+						"          PositionNumber as any,",
+						"          KnownAsJobTitle as any,",
+						"          FormalJobTitle as any,",
+						"          AreaOfWork as any,",
+						"          SubjectiveCode as any,",
+						"          JobStaffGroup as any,",
+						"          JobRole as any,",
+						"          OccupationCode as any,",
+						"          FrontlineHealthcareWorker as any,",
+						"          PayGrade as any,",
+						"          HiringStatus as any,",
+						"          CreatedDate as timestamp,",
+						"          ModifiedDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['PositionNumber'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          PositionNumber,",
+						"          KnownAsJobTitle,",
+						"          FormalJobTitle,",
+						"          AreaOfWork,",
+						"          JobStaffGroup,",
+						"          JobRole,",
+						"          OccupationCode,",
+						"          HiringStatus",
+						"     )) ~> SinkDimPosition"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_conformed_activestaff')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Organisation')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Person')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Position')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_datamart_facts')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Loads Fact_ActiveStaff and Fact_Vacancy. Sources all dim tables from SQL to resolve surrogate FKs. Filters out rows with null mandatory FKs. SnapshotDateKey injected via pipeline parameter p_snapshot_date_key.",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_conformed_activestaff",
+								"type": "DatasetReference"
+							},
+							"name": "SourceConformed",
+							"description": "Conformed ActiveStaffFull CSV."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Organisation",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimOrg",
+							"description": "Dim_Organisation — OrgKey + CostCentre for FK lookup."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Person",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimPerson",
+							"description": "Dim_Person — PersonKey + PUID for FK lookup."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Position",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimPosition",
+							"description": "Dim_Position — PositionKey + PositionNumber for FK lookup."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Assignment",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimAssignment",
+							"description": "Dim_Assignment — AssignmentKey + AssignmentNumber for FK lookup."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_EmploymentType",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimEmpType",
+							"description": "Dim_EmploymentType — EmploymentTypeKey + EmploymentTypeCode for FK lookup."
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Fact_ActiveStaff",
+								"type": "DatasetReference"
+							},
+							"name": "SinkFactActiveStaff",
+							"description": "Upsert Fact_ActiveStaff on (SnapshotDateKey, AssignmentKey)."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Fact_Vacancy",
+								"type": "DatasetReference"
+							},
+							"name": "SinkFactVacancy",
+							"description": "Upsert Fact_Vacancy on (SnapshotDateKey, PositionKey). BudgetedWTE left null (placeholder)."
+						}
+					],
+					"transformations": [
+						{
+							"name": "DeriveEmpTypeCode"
+						},
+						{
+							"name": "JoinOrgKey"
+						},
+						{
+							"name": "JoinPersonKey"
+						},
+						{
+							"name": "JoinPositionKey"
+						},
+						{
+							"name": "JoinAssignmentKey"
+						},
+						{
+							"name": "JoinEmpTypeKey"
+						},
+						{
+							"name": "FilterValidFacts"
+						},
+						{
+							"name": "DeriveActiveFact"
+						},
+						{
+							"name": "SelectActiveFact"
+						},
+						{
+							"name": "FilterPositionsForVacancy"
+						},
+						{
+							"name": "AggregateVacancy"
+						},
+						{
+							"name": "JoinVacancyPositionKey"
+						},
+						{
+							"name": "JoinVacancyKeys"
+						},
+						{
+							"name": "FilterValidVacancy"
+						},
+						{
+							"name": "DeriveVacancyFact"
+						},
+						{
+							"name": "SelectVacancyFact"
+						},
+						{
+							"name": "AlterRowActiveFact"
+						},
+						{
+							"name": "AlterRowVacancyFact"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     p_snapshot_date_key as integer (20260319)",
+						"}",
+						"source(output(",
+						"          PERSON_UNIQUE_IDENTIFIER_PUID as string,",
+						"          ASSIGNMENT_NUMBER as string,",
+						"          FTE as string,",
+						"          PRIMARY_JOB as string,",
+						"          ASSIGNMENT_TYPE as string,",
+						"          WORKPLACE_ORG_NAME as string,",
+						"          POSITION_NUMBER as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SourceConformed",
+						"source(output(",
+						"          OrgKey as integer,",
+						"          CostCentre as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimOrg",
+						"source(output(",
+						"          PersonKey as integer,",
+						"          PUID as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimPerson",
+						"source(output(",
+						"          PositionKey as integer,",
+						"          PositionNumber as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimPosition",
+						"source(output(",
+						"          AssignmentKey as integer,",
+						"          AssignmentNumber as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimAssignment",
+						"source(output(",
+						"          EmploymentTypeKey as integer,",
+						"          EmploymentTypeCode as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimEmpType",
+						"SourceConformed derive(DerivedEmpTypeCode = toString(case(",
+						"        lower(trim(ASSIGNMENT_TYPE)) == 'permanent',                         'PERM',",
+						"        lower(trim(ASSIGNMENT_TYPE)) == 'fixed term contract',               'FTC',",
+						"        lower(trim(ASSIGNMENT_TYPE)) == 'fixed-term contract',               'FTC',",
+						"        lower(trim(ASSIGNMENT_TYPE)) == 'bank',                              'BANK',",
+						"        lower(trim(ASSIGNMENT_TYPE)) == 'agency worker',                     'AGENCY',",
+						"        lower(trim(ASSIGNMENT_TYPE)) == 'contractor',                        'CONTRACTOR',",
+						"        lower(trim(ASSIGNMENT_TYPE)) == 'locum',                             'LOCUM',",
+						"        lower(trim(ASSIGNMENT_TYPE)) == 'apprentice',                        'APPRENTICE',",
+						"        'PERM'",
+						"    ))) ~> DeriveEmpTypeCode",
+						"DeriveEmpTypeCode, SourceDimOrg join(WORKPLACE_ORG_NAME == CostCentre,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinOrgKey",
+						"JoinOrgKey, SourceDimPerson join(PERSON_UNIQUE_IDENTIFIER_PUID == PUID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinPersonKey",
+						"JoinPersonKey, SourceDimPosition join(POSITION_NUMBER == PositionNumber,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinPositionKey",
+						"JoinPositionKey, SourceDimAssignment join(ASSIGNMENT_NUMBER == AssignmentNumber,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinAssignmentKey",
+						"JoinAssignmentKey, SourceDimEmpType join(DerivedEmpTypeCode == EmploymentTypeCode,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinEmpTypeKey",
+						"JoinEmpTypeKey filter(!isNull(PersonKey)",
+						"    && !isNull(AssignmentKey)",
+						"    && !isNull(OrgKey)",
+						"    && !isNull(EmploymentTypeKey)) ~> FilterValidFacts",
+						"FilterValidFacts derive(SnapshotDateKey = $p_snapshot_date_key,",
+						"          IsPrimaryAssignment = iif(upper(trim(PRIMARY_JOB)) == 'YES' || upper(trim(PRIMARY_JOB)) == 'Y', 1, 0)) ~> DeriveActiveFact",
+						"DeriveActiveFact select(mapColumn(",
+						"          SnapshotDateKey,",
+						"          PersonKey,",
+						"          AssignmentKey,",
+						"          PositionKey,",
+						"          OrgKey,",
+						"          EmploymentTypeKey,",
+						"          WTE = FTE,",
+						"          IsPrimaryAssignment",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectActiveFact",
+						"SourceConformed filter(!isNull(POSITION_NUMBER) && length(trim(POSITION_NUMBER)) > 0) ~> FilterPositionsForVacancy",
+						"FilterPositionsForVacancy aggregate(groupBy(POSITION_NUMBER,",
+						"          WORKPLACE_ORG_NAME),",
+						"     ActualWTE = sum(toDecimal(FTE, 10, 2))) ~> AggregateVacancy",
+						"AggregateVacancy, SourceDimPosition join(POSITION_NUMBER == PositionNumber,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinVacancyPositionKey",
+						"JoinVacancyPositionKey, SourceDimOrg join(WORKPLACE_ORG_NAME == CostCentre,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinVacancyKeys",
+						"JoinVacancyKeys filter(!isNull(PositionKey) && !isNull(OrgKey)) ~> FilterValidVacancy",
+						"FilterValidVacancy derive(SnapshotDateKey = $p_snapshot_date_key) ~> DeriveVacancyFact",
+						"DeriveVacancyFact select(mapColumn(",
+						"          SnapshotDateKey,",
+						"          PositionKey,",
+						"          OrgKey,",
+						"          ActualWTE",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectVacancyFact",
+						"SelectActiveFact alterRow(upsertIf(true())) ~> AlterRowActiveFact",
+						"SelectVacancyFact alterRow(upsertIf(true())) ~> AlterRowVacancyFact",
+						"AlterRowActiveFact sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          ActiveStaffFactKey as any,",
+						"          SnapshotDateKey as any,",
+						"          PersonKey as any,",
+						"          AssignmentKey as any,",
+						"          PositionKey as any,",
+						"          OrgKey as any,",
+						"          EmploymentTypeKey as any,",
+						"          WTE as decimal(10,2),",
+						"          IsPrimaryAssignment as any,",
+						"          CreatedDate as timestamp,",
+						"          ModifiedDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['SnapshotDateKey','AssignmentKey'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          SnapshotDateKey,",
+						"          PersonKey,",
+						"          AssignmentKey,",
+						"          PositionKey,",
+						"          OrgKey,",
+						"          EmploymentTypeKey,",
+						"          WTE,",
+						"          IsPrimaryAssignment",
+						"     )) ~> SinkFactActiveStaff",
+						"AlterRowVacancyFact sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          VacancyFactKey as any,",
+						"          SnapshotDateKey as any,",
+						"          PositionKey as any,",
+						"          OrgKey as any,",
+						"          BudgetedWTE as decimal(10,2),",
+						"          ActualWTE as decimal(10,2),",
+						"          VacancyWTE as decimal(11,2),",
+						"          CreatedDate as timestamp,",
+						"          ModifiedDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['SnapshotDateKey','PositionKey'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          SnapshotDateKey,",
+						"          PositionKey,",
+						"          OrgKey,",
+						"          ActualWTE",
+						"     )) ~> SinkFactVacancy"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_conformed_activestaff')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Organisation')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Person')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Position')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Assignment')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_EmploymentType')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Fact_ActiveStaff')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Fact_Vacancy')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_transform_esr_actives')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Three-source join: StaffInPost + PositionsAnalysis (LEFT on Position Number = Position) + Learning aggregated (LEFT on Employee Number = Applicant Number). TRUST_VPD derived from file name. Dual output branches: SelectActiveStaff (full spec V0.1) and SelectPatientPrivacy (subset spec V0.2). VPD filter is LAST on each branch.",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_esr_actives_sip_source",
+								"type": "DatasetReference"
+							},
+							"name": "SourceSIP",
+							"description": "StaffInPost CSV: person, assignment, supervisor and employment data. Payroll Name first 3 chars used to derive TRUST_VPD. Multi-VPD file — rows for all trusts in the upload."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_esr_actives_pos_source",
+								"type": "DatasetReference"
+							},
+							"name": "SourcePOS",
+							"description": "PositionsAnalysis CSV: position metadata. LEFT-joined to SourceSIP on {Position Number} = Position. Provides formal job title, staff group, occupation code, hiring status and org hierarchy."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_esr_actives_lrn_source",
+								"type": "DatasetReference"
+							},
+							"name": "SourceLRN",
+							"description": "Learning CSV: training and e-learning records. Aggregated to one row per employee before joining to prevent row duplication."
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_esr_actives_staff_all_output",
+								"type": "DatasetReference"
+							},
+							"name": "SinkStaffAll",
+							"description": "Write Active Staff Full all-VPD CSV to conformed/actives/staff/all/. No filter — every employee row from every trust. Schema: Active Staff Data Product Mapping Spec V0.1."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_esr_actives_staff_vpd_output",
+								"type": "DatasetReference"
+							},
+							"name": "SinkStaffVPD",
+							"description": "Write Active Staff Full VPD-filtered CSV to conformed/actives/staff/<vpd_code>/. Schema: Active Staff Data Product Mapping Spec V0.1."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_esr_actives_pp_all_output",
+								"type": "DatasetReference"
+							},
+							"name": "SinkPPAll",
+							"description": "Write Patient Privacy Workforce all-VPD CSV to conformed/actives/pp/all/. No filter — every employee row from every trust. Schema: Active Patient Privacy Staff Data Product Mapping Spec V0.2."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_esr_actives_pp_vpd_output",
+								"type": "DatasetReference"
+							},
+							"name": "SinkPPVPD",
+							"description": "Write Patient Privacy Workforce VPD-filtered CSV to conformed/actives/pp/<vpd_code>/. Schema: Active Patient Privacy Staff Data Product Mapping Spec V0.2."
+						}
+					],
+					"transformations": [
+						{
+							"name": "AggregateLRN",
+							"description": "Aggregate Learning records by Applicant Number. Takes last() of Course, Completion Date, Enrollment Status and Score — one row per employee for the join."
+						},
+						{
+							"name": "JoinSIPPOS",
+							"description": "LEFT JOIN: StaffInPost joined to PositionsAnalysis on {Position Number} = Position. All SIP rows retained. Position columns are null if no matching position exists."
+						},
+						{
+							"name": "JoinAll",
+							"description": "LEFT JOIN: JoinSIPPOS result joined to AggregateLRN on {Employee Number} = {Applicant Number}. All employee rows retained. Learning columns are null for employees with no training records."
+						},
+						{
+							"name": "DeriveFields",
+							"description": "Attribute conformance: PUID from ESR source column, FORENAME/SURNAME preserved as-is from ESR (not upper-cased), DATE_OF_BIRTH reformat, FTE to 2dp, OCCUPATION_CODE 3-digit 0-pad, TRUST_VPD from Payroll Name first 3 chars, DATE_LEFT_JOB_ESR and DATE_STARTED_IN_JOB_ESR from Asg Effective dates. Null placeholders for future/no-source fields."
+						},
+						{
+							"name": "SelectActiveStaff",
+							"description": "Branch 1: maps derived fields to Active Staff Full output schema per Mapping Spec V0.1. DATE_LEFT_JOB is blank. Includes Prof Reg/DBS/Visa fields (all null/orange). Learning columns excluded."
+						},
+						{
+							"name": "SelectPatientPrivacy",
+							"description": "Branch 2: maps derived fields to Patient Privacy Workforce output schema per Mapping Spec V0.2 (subset of V0.1). DATE_LEFT_JOB from Asg Effective End Date. Prof Reg/DBS/Visa columns excluded entirely."
+						},
+						{
+							"name": "FilterVPDStaff",
+							"description": "VPD filter for Active Staff Full branch. Applied AFTER SinkStaffAll so all-VPD output is fully written first."
+						},
+						{
+							"name": "FilterVPDPP",
+							"description": "VPD filter for Patient Privacy Workforce branch. Applied AFTER SinkPPAll so all-VPD output is fully written first."
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     vpd_code as integer (185)",
+						"}",
+						"source(output(",
+						"          PUID as string,",
+						"          {Employee Number} as string,",
+						"          {Assignment Number} as string,",
+						"          {Last Name} as string,",
+						"          {First Name} as string,",
+						"          {Middle Name} as string,",
+						"          Title as string,",
+						"          {Employee Person Type} as string,",
+						"          {Person Type} as string,",
+						"          Gender as string,",
+						"          {Marital Status} as string,",
+						"          {NI Number} as string,",
+						"          {Date of Birth} as string,",
+						"          {Address Line 1} as string,",
+						"          {Address Line 2} as string,",
+						"          {Address Line 3} as string,",
+						"          {Town or City} as string,",
+						"          County as string,",
+						"          {Postal Code} as string,",
+						"          {Email Address} as string,",
+						"          Supervisor as string,",
+						"          {Supervisor Employee Number} as string,",
+						"          {Supervisor Assignment Number} as string,",
+						"          {Supervisor Email Address} as string,",
+						"          Location as string,",
+						"          {Payroll Name} as string,",
+						"          {Position Number} as string,",
+						"          {Assignment Category} as string,",
+						"          {Assignment Status} as string,",
+						"          FTE as string,",
+						"          {Latest Start Date} as string,",
+						"          {NHS Entry Date} as string,",
+						"          {Original Hire Date} as string,",
+						"          {Start Date in Position} as string,",
+						"          {Primary Assignment} as string,",
+						"          {Asg Effective Start Date} as string,",
+						"          {Asg Effective End Date} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SourceSIP",
+						"source(output(",
+						"          Position as string,",
+						"          {Occupation Code} as string,",
+						"          {Hiring Status} as string,",
+						"          {Position Title} as string,",
+						"          {Position Title (Summary)} as string,",
+						"          {Primary Area of Work} as string,",
+						"          {Secondary Area of Work} as string,",
+						"          {Area Of Work} as string,",
+						"          {Workplace Org Name} as string,",
+						"          {Location Name} as string,",
+						"          {Staff Group} as string,",
+						"          Role as string,",
+						"          {Org L3} as string,",
+						"          {Org L4} as string,",
+						"          {Org L5} as string,",
+						"          {Org L6} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SourcePOS",
+						"source(output(",
+						"          {Applicant Number} as string,",
+						"          Category as string,",
+						"          Course as string,",
+						"          {Enrollment Status} as string,",
+						"          {Completion Date} as string,",
+						"          Score as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SourceLRN",
+						"SourceLRN aggregate(groupBy({Applicant Number}),",
+						"     LATEST_LEARNING_COURSE = last(Course),",
+						"          LATEST_LEARNING_DATE = last({Completion Date}),",
+						"          LEARNING_STATUS = last({Enrollment Status}),",
+						"          LEARNING_SCORE = last(toString(Score))) ~> AggregateLRN",
+						"SourceSIP, SourcePOS join({Position Number} == Position,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinSIPPOS",
+						"JoinSIPPOS, AggregateLRN join({Employee Number} == {Applicant Number},",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinAll",
+						"JoinAll derive(PERSON_UNIQUE_IDENTIFIER_PUID = trim(PUID),",
+						"          FORENAME = trim({First Name}),",
+						"          SURNAME = trim({Last Name}),",
+						"          DATE_OF_BIRTH = iif(",
+						"        isNull({Date of Birth}) || length(trim({Date of Birth})) == 0,",
+						"        '',",
+						"        toString(toDate({Date of Birth}, 'dd-MMM-yy'), 'dd/MM/yyyy')",
+						"    ),",
+						"          POSTAL_CODE = upper(trim({Postal Code})),",
+						"          LATEST_START_DATE = iif(",
+						"        isNull({Latest Start Date}) || length(trim({Latest Start Date})) == 0,",
+						"        '',",
+						"        left(trim({Latest Start Date}), 10)",
+						"    ),",
+						"          PRIMARY_JOB = iif(",
+						"        upper(trim({Primary Assignment})) == 'Y' ||",
+						"        upper(trim({Primary Assignment})) == 'YES' ||",
+						"        trim({Primary Assignment}) == '1',",
+						"        'Yes',",
+						"        'No'",
+						"    ),",
+						"          OCCUPATION_CODE_PADDED = iif(",
+						"        isNull({Occupation Code}) || length(trim({Occupation Code})) == 0,",
+						"        '',",
+						"        iif(",
+						"            length(trim({Occupation Code})) < 3,",
+						"            lpad(trim({Occupation Code}), 3, '0'),",
+						"            trim({Occupation Code})",
+						"        )",
+						"    ),",
+						"          TRUST_VPD = left(trim({Payroll Name}), 3),",
+						"          FTE_FORMATTED = iif(",
+						"        isNull(FTE) || length(trim(toString(FTE))) == 0,",
+						"        '',",
+						"        toString(toDecimal(FTE, 10, 2))",
+						"    ),",
+						"          DATE_LEFT_JOB_ESR = iif(",
+						"        isNull({Asg Effective End Date}) || length(trim({Asg Effective End Date})) == 0,",
+						"        '',",
+						"        left(trim({Asg Effective End Date}), 10)",
+						"    ),",
+						"          DATE_STARTED_IN_JOB_ESR = iif(",
+						"        isNull({Asg Effective Start Date}) || length(trim({Asg Effective Start Date})) == 0,",
+						"        '',",
+						"        left(trim({Asg Effective Start Date}), 10)",
+						"    ),",
+						"          TERMINATION_DATE = toString(null()),",
+						"          LEAVE_START_DATE = toString(null()),",
+						"          LEAVE_END_DATE = toString(null()),",
+						"          NAME_OF_PARTNER_OR_SPOUSE = toString(null()),",
+						"          OFFICE_LOCATION_ID = toString(null()),",
+						"          OFFICE_LOCATION_ADDRESS = toString(null()),",
+						"          LINE_MANAGER_PUID = toString(null()),",
+						"          LINE_MANAGER_EMPLOYEE_NUMBER = toString(null()),",
+						"          LINE_MANAGER_ASSIGNMENT_NUMBER = toString(null()),",
+						"          LINE_MANAGER_EMAIL_ADDRESS = toString(null()),",
+						"          LINE_MANAGER_POSITION = toString(null()),",
+						"          LINE_MANAGER_NAME = toString(null()),",
+						"          ASSIGNMENT_ADDRESS_1ST_LINE = toString(null()),",
+						"          ASSIGNMENT_ADDRESS_2ND_LINE = toString(null()),",
+						"          ASSIGNMENT_ADDRESS_3RD_LINE = toString(null()),",
+						"          TOWN = toString(null()),",
+						"          LOCATION_COUNTY = toString(null()),",
+						"          POSTCODE = toString(null()),",
+						"          COUNTRY = toString(null()),",
+						"          LOCATION_DESCRIPTION = toString(null()),",
+						"          EC_NAME = toString(null()),",
+						"          EC_PHONE = toString(null()),",
+						"          EC_ADDRESS = toString(null()),",
+						"          EC_EMAIL = toString(null()),",
+						"          EC_RELATIONSHIP = toString(null()),",
+						"          NOK_FORENAME = toString(null()),",
+						"          NOK_SURNAME = toString(null()),",
+						"          NOK_PHONE = toString(null()),",
+						"          NOK_EMAIL = toString(null()),",
+						"          NOK_ADDRESS = toString(null()),",
+						"          NOK_RELATIONSHIP = toString(null()),",
+						"          DATE_LEFT_JOB_BLANK = toString(null()),",
+						"          PROFESSIONAL_REGISTRATION_BODY = toString(null()),",
+						"          PROFESSIONAL_REGISTRATION_STATUS = toString(null()),",
+						"          PROFESSIONAL_REGISTRATION_STATE = toString(null()),",
+						"          PROFESSIONAL_REGISTRATION_EXPIRY_DATE = toString(null()),",
+						"          DBS_TYPE = toString(null()),",
+						"          DBS_DATE = toString(null()),",
+						"          DBS_CERTIFICATE_NUMBER = toString(null()),",
+						"          DBS_RENEWAL_DATE = toString(null()),",
+						"          COMPLIANT_DBS = toString(null()),",
+						"          VISA_NUMBER_VIGNETTE = toString(null()),",
+						"          VISA_TYPE = toString(null()),",
+						"          VISA_ISSUE_DATE = toString(null()),",
+						"          VISA_EXPIRY_DATE = toString(null()),",
+						"          NHS_ENTRY_DATE_CLEAN = iif(",
+						"        isNull({NHS Entry Date}) || length(trim({NHS Entry Date})) == 0,",
+						"        '',",
+						"        left(trim({NHS Entry Date}), 10)",
+						"    ),",
+						"          DEPARTMENT_DERIVED = trim(toString(byName(concat('Org L6', char(13))))),",
+						"          PARENT_ORGANISATION_BLANK = toString(null())) ~> DeriveFields",
+						"DeriveFields select(mapColumn(",
+						"          PERSON_UNIQUE_IDENTIFIER_PUID,",
+						"          EMPLOYEE_NUMBER = {Employee Number},",
+						"          FORENAME,",
+						"          OTHER_NAME_S = {Middle Name},",
+						"          SURNAME,",
+						"          TITLE = Title,",
+						"          GENDER = Gender,",
+						"          DATE_OF_BIRTH,",
+						"          MARITAL_PARTNERSHIP_STATUS = {Marital Status},",
+						"          NAME_OF_PARTNER_OR_SPOUSE,",
+						"          PERSONAL_HOME_ADDRESS_LINE_1 = {Address Line 1},",
+						"          PERSONAL_HOME_ADDRESS_LINE_2 = {Address Line 2},",
+						"          PERSONAL_HOME_ADDRESS_LINE_3 = {Address Line 3},",
+						"          TOWN_OR_CITY = {Town or City},",
+						"          COUNTY = County,",
+						"          POSTAL_CODE,",
+						"          LATEST_START_DATE,",
+						"          NHS_ENTRY_DATE = NHS_ENTRY_DATE_CLEAN,",
+						"          ORIGINAL_HIRE_DATE = {Original Hire Date},",
+						"          TRUST_VPD,",
+						"          PERSON_TYPE = {Person Type},",
+						"          EMPLOYEE_PERSON_TYPE = {Employee Person Type},",
+						"          ASSIGNMENT_NUMBER = {Assignment Number},",
+						"          PRIMARY_JOB,",
+						"          OFFICE_LOCATION = Location,",
+						"          EMAIL_ADDRESS = {Email Address},",
+						"          DATE_STARTED_IN_JOB = DATE_STARTED_IN_JOB_ESR,",
+						"          ASSIGNMENT_TYPE = {Assignment Category},",
+						"          ASSIGNMENT_STATUS = {Assignment Status},",
+						"          FTE = FTE_FORMATTED,",
+						"          DATE_LEFT_JOB = DATE_LEFT_JOB_BLANK,",
+						"          TERMINATION_DATE,",
+						"          LEAVE_START_DATE,",
+						"          LEAVE_END_DATE,",
+						"          SUPERVISOR = Supervisor,",
+						"          SUPERVISOR_EMPLOYEE_NUMBER = {Supervisor Employee Number},",
+						"          SUPERVISOR_ASSIGNMENT_NUMBER = {Supervisor Assignment Number},",
+						"          SUPERVISOR_EMAIL_ADDRESS = {Supervisor Email Address},",
+						"          LINE_MANAGER_PUID,",
+						"          LINE_MANAGER_EMPLOYEE_NUMBER,",
+						"          LINE_MANAGER_ASSIGNMENT_NUMBER,",
+						"          LINE_MANAGER_EMAIL_ADDRESS,",
+						"          LINE_MANAGER_POSITION,",
+						"          LINE_MANAGER_NAME,",
+						"          POSITION_NUMBER = {Position Number},",
+						"          FORMAL_JOB_TITLE = {Position Title (Summary)},",
+						"          KNOWN_AS_JOB_TITLE = {Position Title},",
+						"          AREA_OF_WORK = {Area Of Work},",
+						"          JOB_STAFF_GROUP = {Staff Group},",
+						"          JOB_ROLE = Role,",
+						"          OCCUPATION_CODE = OCCUPATION_CODE_PADDED,",
+						"          HIRING_STATUS = {Hiring Status},",
+						"          WORKPLACE_ORG_NAME = {Workplace Org Name},",
+						"          PRIMARY_AREA_OF_WORK = {Primary Area of Work},",
+						"          SECONDARY_AREA_OF_WORK = {Secondary Area of Work},",
+						"          DEPARTMENT = DEPARTMENT_DERIVED,",
+						"          OFFICE_LOCATION_NAME = {Location Name},",
+						"          OFFICE_LOCATION_ID,",
+						"          OFFICE_LOCATION_ADDRESS,",
+						"          ASSIGNMENT_ADDRESS_1ST_LINE,",
+						"          ASSIGNMENT_ADDRESS_2ND_LINE,",
+						"          ASSIGNMENT_ADDRESS_3RD_LINE,",
+						"          TOWN,",
+						"          LOCATION_COUNTY,",
+						"          POSTCODE,",
+						"          COUNTRY,",
+						"          LOCATION_DESCRIPTION,",
+						"          EC_NAME,",
+						"          EC_PHONE,",
+						"          EC_ADDRESS,",
+						"          EC_EMAIL,",
+						"          EC_RELATIONSHIP,",
+						"          NOK_FORENAME,",
+						"          NOK_SURNAME,",
+						"          NOK_PHONE,",
+						"          NOK_EMAIL,",
+						"          NOK_ADDRESS,",
+						"          NOK_RELATIONSHIP,",
+						"          PROFESSIONAL_REGISTRATION_BODY,",
+						"          PROFESSIONAL_REGISTRATION_STATUS,",
+						"          PROFESSIONAL_REGISTRATION_STATE,",
+						"          PROFESSIONAL_REGISTRATION_EXPIRY_DATE,",
+						"          DBS_TYPE,",
+						"          DBS_DATE,",
+						"          DBS_CERTIFICATE_NUMBER,",
+						"          DBS_RENEWAL_DATE,",
+						"          COMPLIANT_DBS,",
+						"          VISA_NUMBER_VIGNETTE,",
+						"          VISA_TYPE,",
+						"          VISA_ISSUE_DATE,",
+						"          VISA_EXPIRY_DATE,",
+						"          PARENT_ORGANISATION = PARENT_ORGANISATION_BLANK",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectActiveStaff",
+						"DeriveFields select(mapColumn(",
+						"          PERSON_UNIQUE_IDENTIFIER_PUID,",
+						"          EMPLOYEE_NUMBER = {Employee Number},",
+						"          FORENAME,",
+						"          OTHER_NAME_S = {Middle Name},",
+						"          SURNAME,",
+						"          TITLE = Title,",
+						"          GENDER = Gender,",
+						"          DATE_OF_BIRTH,",
+						"          MARITAL_PARTNERSHIP_STATUS = {Marital Status},",
+						"          NAME_OF_PARTNER_OR_SPOUSE,",
+						"          PERSONAL_HOME_ADDRESS_LINE_1 = {Address Line 1},",
+						"          PERSONAL_HOME_ADDRESS_LINE_2 = {Address Line 2},",
+						"          PERSONAL_HOME_ADDRESS_LINE_3 = {Address Line 3},",
+						"          TOWN_OR_CITY = {Town or City},",
+						"          COUNTY = County,",
+						"          POSTAL_CODE,",
+						"          LATEST_START_DATE,",
+						"          NHS_ENTRY_DATE = NHS_ENTRY_DATE_CLEAN,",
+						"          ORIGINAL_HIRE_DATE = {Original Hire Date},",
+						"          TRUST_VPD,",
+						"          PERSON_TYPE = {Person Type},",
+						"          EMPLOYEE_PERSON_TYPE = {Employee Person Type},",
+						"          ASSIGNMENT_NUMBER = {Assignment Number},",
+						"          PRIMARY_JOB,",
+						"          OFFICE_LOCATION = Location,",
+						"          EMAIL_ADDRESS = {Email Address},",
+						"          DATE_STARTED_IN_JOB = DATE_STARTED_IN_JOB_ESR,",
+						"          ASSIGNMENT_TYPE = {Assignment Category},",
+						"          ASSIGNMENT_STATUS = {Assignment Status},",
+						"          FTE = FTE_FORMATTED,",
+						"          DATE_LEFT_JOB = DATE_LEFT_JOB_ESR,",
+						"          TERMINATION_DATE,",
+						"          LEAVE_START_DATE,",
+						"          LEAVE_END_DATE,",
+						"          SUPERVISOR = Supervisor,",
+						"          SUPERVISOR_EMPLOYEE_NUMBER = {Supervisor Employee Number},",
+						"          SUPERVISOR_ASSIGNMENT_NUMBER = {Supervisor Assignment Number},",
+						"          SUPERVISOR_EMAIL_ADDRESS = {Supervisor Email Address},",
+						"          LINE_MANAGER_PUID,",
+						"          LINE_MANAGER_EMPLOYEE_NUMBER,",
+						"          LINE_MANAGER_ASSIGNMENT_NUMBER,",
+						"          LINE_MANAGER_EMAIL_ADDRESS,",
+						"          LINE_MANAGER_POSITION,",
+						"          LINE_MANAGER_NAME,",
+						"          POSITION_NUMBER = {Position Number},",
+						"          FORMAL_JOB_TITLE = {Position Title (Summary)},",
+						"          KNOWN_AS_JOB_TITLE = {Position Title},",
+						"          AREA_OF_WORK = {Area Of Work},",
+						"          JOB_STAFF_GROUP = {Staff Group},",
+						"          JOB_ROLE = Role,",
+						"          OCCUPATION_CODE = OCCUPATION_CODE_PADDED,",
+						"          HIRING_STATUS = {Hiring Status},",
+						"          WORKPLACE_ORG_NAME = {Workplace Org Name},",
+						"          PRIMARY_AREA_OF_WORK = {Primary Area of Work},",
+						"          SECONDARY_AREA_OF_WORK = {Secondary Area of Work},",
+						"          DEPARTMENT = DEPARTMENT_DERIVED,",
+						"          OFFICE_LOCATION_NAME = {Location Name},",
+						"          OFFICE_LOCATION_ID,",
+						"          OFFICE_LOCATION_ADDRESS,",
+						"          ASSIGNMENT_ADDRESS_1ST_LINE,",
+						"          ASSIGNMENT_ADDRESS_2ND_LINE,",
+						"          ASSIGNMENT_ADDRESS_3RD_LINE,",
+						"          TOWN,",
+						"          LOCATION_COUNTY,",
+						"          POSTCODE,",
+						"          COUNTRY,",
+						"          LOCATION_DESCRIPTION,",
+						"          EC_NAME,",
+						"          EC_PHONE,",
+						"          EC_ADDRESS,",
+						"          EC_EMAIL,",
+						"          EC_RELATIONSHIP,",
+						"          NOK_FORENAME,",
+						"          NOK_SURNAME,",
+						"          NOK_PHONE,",
+						"          NOK_EMAIL,",
+						"          NOK_ADDRESS,",
+						"          NOK_RELATIONSHIP,",
+						"          PARENT_ORGANISATION = PARENT_ORGANISATION_BLANK",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectPatientPrivacy",
+						"SelectActiveStaff filter(toInteger(TRUST_VPD) == $vpd_code) ~> FilterVPDStaff",
+						"SelectPatientPrivacy filter(toInteger(TRUST_VPD) == $vpd_code) ~> FilterVPDPP",
+						"SelectActiveStaff sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SinkStaffAll",
+						"FilterVPDStaff sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SinkStaffVPD",
+						"SelectPatientPrivacy sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SinkPPAll",
+						"FilterVPDPP sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SinkPPVPD"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_sip_source')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_pos_source')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_lrn_source')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_staff_all_output')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_staff_vpd_output')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_pp_all_output')]",
+				"[concat(variables('factoryId'), '/datasets/ds_esr_actives_pp_vpd_output')]"
+			]
+		}
+	]
+}

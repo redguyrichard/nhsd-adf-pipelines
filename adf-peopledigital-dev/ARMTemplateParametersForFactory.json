@@ -1,0 +1,36 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-peopledigital-dev"
+		},
+		"ls_sqldb_sqldb-nhsdwi-dev_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=sql-nhsdwi-dev.database.windows.net;Initial Catalog=sqldb-nhsdwi-dev"
+		},
+		"ls_adls_stnhsdwidev_properties_typeProperties_url": {
+			"value": "https://stnhsdwidev.dfs.core.windows.net"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_all_output_folder": {
+			"value": "actives/pp/all"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_pp_vpd_output_folder": {
+			"value": "actives/pp/185"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_run_date": {
+			"value": "@trigger().scheduledTime"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_source_folder": {
+			"value": "@concat('esr/', formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd'))"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_all_output_folder": {
+			"value": "actives/staff/all"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_staff_vpd_output_folder": {
+			"value": "actives/staff/185"
+		},
+		"tr_daily_esr_actives_properties_pl_esr_actives_daily_parameters_p_vpd_code": {
+			"value": "185"
+		}
+	}
+}

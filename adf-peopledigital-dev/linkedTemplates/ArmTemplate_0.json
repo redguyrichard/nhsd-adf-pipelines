@@ -1,0 +1,1170 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-peopledigital-dev"
+		},
+		"ls_sqldb_sqldb-nhsdwi-dev_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_sqldb_sqldb-nhsdwi-dev'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=sql-nhsdwi-dev.database.windows.net;Initial Catalog=sqldb-nhsdwi-dev"
+		},
+		"ls_adls_stnhsdwidev_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stnhsdwidev.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_adls_stnhsdwidev')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_adls_stnhsdwidev_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sqldb_sqldb-nhsdwi-dev')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_sqldb_sqldb-nhsdwi-dev_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_conformed_activestaff')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Source for pl_load_datamart. Reads the conformed ActiveStaffFull CSV produced by pl_esr_actives_daily. p_folder = conformed sub-path (e.g. actives/staff/all); p_filename = YYYYMMDD_ActiveStaffFull_Azure_All.csv.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_filename": {
+						"type": "String",
+						"defaultValue": "20260319_ActiveStaffFull_Azure_All.csv"
+					},
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/all"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_Assignment')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "AssignmentKey",
+						"type": "Integer"
+					},
+					{
+						"name": "AssignmentNumber",
+						"type": "String"
+					},
+					{
+						"name": "PersonKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PrimaryJob",
+						"type": "String"
+					},
+					{
+						"name": "OfficeLocation",
+						"type": "String"
+					},
+					{
+						"name": "AssignmentType",
+						"type": "String"
+					},
+					{
+						"name": "AssignmentStatus",
+						"type": "String"
+					},
+					{
+						"name": "DateStartedInJob",
+						"type": "DateTime"
+					},
+					{
+						"name": "DateLeftJob",
+						"type": "DateTime"
+					},
+					{
+						"name": "FixedTermReason",
+						"type": "String"
+					},
+					{
+						"name": "FullTimePartTime",
+						"type": "String"
+					},
+					{
+						"name": "FTE",
+						"type": "Decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "OrgKey",
+						"type": "Integer"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_Assignment"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_EmploymentType')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "EmploymentTypeKey",
+						"type": "Integer"
+					},
+					{
+						"name": "EmploymentTypeCode",
+						"type": "String"
+					},
+					{
+						"name": "EmploymentTypeName",
+						"type": "String"
+					},
+					{
+						"name": "Category",
+						"type": "String"
+					},
+					{
+						"name": "IsPermanent",
+						"type": "Boolean"
+					},
+					{
+						"name": "IsContingent",
+						"type": "Boolean"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "IsActive",
+						"type": "Boolean"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_EmploymentType"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_Organisation')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "OrgKey",
+						"type": "Integer"
+					},
+					{
+						"name": "CostCentre",
+						"type": "String"
+					},
+					{
+						"name": "Service",
+						"type": "String"
+					},
+					{
+						"name": "Division",
+						"type": "String"
+					},
+					{
+						"name": "Directorate",
+						"type": "String"
+					},
+					{
+						"name": "CareGroup",
+						"type": "String"
+					},
+					{
+						"name": "Department",
+						"type": "String"
+					},
+					{
+						"name": "TrustVPD",
+						"type": "String"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "IsActive",
+						"type": "Boolean"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_Organisation"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_Person')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "PersonKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PUID",
+						"type": "String"
+					},
+					{
+						"name": "EmployeeNumber",
+						"type": "String"
+					},
+					{
+						"name": "Forename",
+						"type": "String"
+					},
+					{
+						"name": "Surname",
+						"type": "String"
+					},
+					{
+						"name": "Title",
+						"type": "String"
+					},
+					{
+						"name": "Gender",
+						"type": "String"
+					},
+					{
+						"name": "DateOfBirth",
+						"type": "DateTime"
+					},
+					{
+						"name": "MaritalStatus",
+						"type": "String"
+					},
+					{
+						"name": "LatestStartDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "NHSEntryDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "OriginalHireDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "LengthOfServiceYears",
+						"type": "Decimal",
+						"precision": 5,
+						"scale": 2
+					},
+					{
+						"name": "TrustVPD",
+						"type": "String"
+					},
+					{
+						"name": "AgeBand",
+						"type": "String"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "IsActive",
+						"type": "Boolean"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_Person"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Dim_Position')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "PositionKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PositionNumber",
+						"type": "String"
+					},
+					{
+						"name": "KnownAsJobTitle",
+						"type": "String"
+					},
+					{
+						"name": "FormalJobTitle",
+						"type": "String"
+					},
+					{
+						"name": "AreaOfWork",
+						"type": "String"
+					},
+					{
+						"name": "SubjectiveCode",
+						"type": "String"
+					},
+					{
+						"name": "JobStaffGroup",
+						"type": "String"
+					},
+					{
+						"name": "JobRole",
+						"type": "String"
+					},
+					{
+						"name": "OccupationCode",
+						"type": "String"
+					},
+					{
+						"name": "FrontlineHealthcareWorker",
+						"type": "String"
+					},
+					{
+						"name": "PayGrade",
+						"type": "String"
+					},
+					{
+						"name": "HiringStatus",
+						"type": "String"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Dim_Position"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Fact_ActiveStaff')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ActiveStaffFactKey",
+						"type": "Integer"
+					},
+					{
+						"name": "SnapshotDateKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PersonKey",
+						"type": "Integer"
+					},
+					{
+						"name": "AssignmentKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PositionKey",
+						"type": "Integer"
+					},
+					{
+						"name": "OrgKey",
+						"type": "Integer"
+					},
+					{
+						"name": "EmploymentTypeKey",
+						"type": "Integer"
+					},
+					{
+						"name": "WTE",
+						"type": "Decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "IsPrimaryAssignment",
+						"type": "Boolean"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Fact_ActiveStaff"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_datamart_sql_Fact_Vacancy')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sqldb_sqldb-nhsdwi-dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "VacancyFactKey",
+						"type": "Integer"
+					},
+					{
+						"name": "SnapshotDateKey",
+						"type": "Integer"
+					},
+					{
+						"name": "PositionKey",
+						"type": "Integer"
+					},
+					{
+						"name": "OrgKey",
+						"type": "Integer"
+					},
+					{
+						"name": "BudgetedWTE",
+						"type": "Decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "ActualWTE",
+						"type": "Decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "VacancyWTE",
+						"type": "Decimal",
+						"precision": 11,
+						"scale": 2
+					},
+					{
+						"name": "CreatedDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "DateTime"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Fact_Vacancy"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sqldb_sqldb-nhsdwi-dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_conformed_folder')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Generic folder-scoped dataset in conformed container. p_folder drives the path; no filename. Shared by all ClearWorking/CleanWorking Delete and CopyRename source activities.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "actives"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_csv_archive')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Archive dataset — folder-level sink (no filename). Wildcard copy writes each source file to this folder with its original name preserved. Shared by all three archive copy activities (SIP, POS, LRN).",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_archive_folder": {
+						"type": "String",
+						"defaultValue": "esr/20260319"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_archive_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "archive"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_lrn_source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ESR Actives source 3 of 3: Learning CSV. All files matching Learning_*.csv in p_folder are read (wildcard). Training records aggregated by Applicant Number (one row per employee: latest course, date, status, score) before LEFT-joining to StaffInPost on Employee Number = Applicant Number.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "esr/2026-03-19"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_pos_source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ESR Actives source 2 of 3: PositionsAnalysis CSV. All files matching PositionsAnalysis_*.csv in p_folder are read (wildcard). Position metadata: job title, staff group, occupation code, hiring status and org hierarchy (Org L3-L6). LEFT-joined to StaffInPost on Position Number = Position.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "esr/2026-03-19"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_pp_all_output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Output 2a: Patient Privacy Workforce — all-VPD consolidated CSV. Schema per Active Patient Privacy Staff Data Product Mapping Spec V0.2 (subset of Active Staff Full; no Prof Reg/DBS/Visa fields). Path: conformed/actives/pp/all/.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_output_filename": {
+						"type": "String",
+						"defaultValue": "20260401_PatientPrivacyWorkforce_Azure_All.csv"
+					},
+					"p_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/pp/all"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_output_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_output_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_pp_vpd_output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Output 2b: Patient Privacy Workforce — single VPD filtered CSV. Schema per Active Patient Privacy Staff Data Product Mapping Spec V0.2. Path: conformed/actives/pp/<vpd_code>/.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_output_filename": {
+						"type": "String",
+						"defaultValue": "20260401_PatientPrivacyWorkforce_Azure_185.csv"
+					},
+					"p_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/pp/185"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_output_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_output_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_sip_source')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "ESR Actives source 1 of 3: StaffInPost CSV. All files matching StaffInPost_*.csv in p_folder are read (wildcard) — supports any number of per-VPD files. Payroll Name first 3 chars is used to derive TRUST_VPD.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folder": {
+						"type": "String",
+						"defaultValue": "esr/2026-03-19"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().p_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_staff_all_output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Output 1a: Active Staff Full — all-VPD consolidated CSV. Schema per Active Staff Data Product Mapping Spec V0.1. Path: conformed/actives/staff/all/.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_output_filename": {
+						"type": "String",
+						"defaultValue": "20260401_ActiveStaffFull_Azure_All.csv"
+					},
+					"p_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/all"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_output_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_output_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_esr_actives_staff_vpd_output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Output 1b: Active Staff Full — single VPD filtered CSV. Schema per Active Staff Data Product Mapping Spec V0.1. Path: conformed/actives/staff/<vpd_code>/.",
+				"linkedServiceName": {
+					"referenceName": "ls_adls_stnhsdwidev",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_output_filename": {
+						"type": "String",
+						"defaultValue": "20260401_ActiveStaffFull_Azure_185.csv"
+					},
+					"p_output_folder": {
+						"type": "String",
+						"defaultValue": "actives/staff/185"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_output_filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_output_folder",
+							"type": "Expression"
+						},
+						"fileSystem": "conformed"
+					},
+					"columnDelimiter": ",",
+					"rowDelimiter": "\n",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_stnhsdwidev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_datamart_assignments')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Loads Dim_Assignment from conformed CSV. Left-joins Dim_Organisation on WORKPLACE_ORG_NAME = CostCentre and Dim_Person on PUID to resolve OrgKey and PersonKey. Upserts on AssignmentNumber. FullTimePartTime derived from FTE.",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_conformed_activestaff",
+								"type": "DatasetReference"
+							},
+							"name": "SourceConformed",
+							"description": "Conformed ActiveStaffFull CSV."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Organisation",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimOrg",
+							"description": "Dim_Organisation lookup — reads OrgKey, CostCentre from SQL."
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Person",
+								"type": "DatasetReference"
+							},
+							"name": "SourceDimPerson",
+							"description": "Dim_Person lookup — reads PersonKey, PUID from SQL."
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_datamart_sql_Dim_Assignment",
+								"type": "DatasetReference"
+							},
+							"name": "SinkDimAssignment",
+							"description": "Upsert Dim_Assignment on AssignmentNumber key."
+						}
+					],
+					"transformations": [
+						{
+							"name": "JoinOrgKey"
+						},
+						{
+							"name": "JoinPersonKey"
+						},
+						{
+							"name": "DeriveAssignmentAttribs"
+						},
+						{
+							"name": "SelectAssignment"
+						},
+						{
+							"name": "AlterRowAssignment"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          PERSON_UNIQUE_IDENTIFIER_PUID as string,",
+						"          ASSIGNMENT_NUMBER as string,",
+						"          PRIMARY_JOB as string,",
+						"          OFFICE_LOCATION as string,",
+						"          ASSIGNMENT_TYPE as string,",
+						"          ASSIGNMENT_STATUS as string,",
+						"          DATE_STARTED_IN_JOB as string,",
+						"          DATE_LEFT_JOB as string,",
+						"          FTE as string,",
+						"          WORKPLACE_ORG_NAME as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> SourceConformed",
+						"source(output(",
+						"          OrgKey as integer,",
+						"          CostCentre as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimOrg",
+						"source(output(",
+						"          PersonKey as integer,",
+						"          PUID as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> SourceDimPerson",
+						"SourceConformed, SourceDimOrg join(WORKPLACE_ORG_NAME == CostCentre,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinOrgKey",
+						"JoinOrgKey, SourceDimPerson join(PERSON_UNIQUE_IDENTIFIER_PUID == PUID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'right')~> JoinPersonKey",
+						"JoinPersonKey derive(FullTimePartTime = iif(",
+						"        isNull(FTE) || length(trim(FTE)) == 0,",
+						"        toString(null()),",
+						"        iif(toDecimal(FTE, 10, 2) >= 1.0, 'Full Time', 'Part Time')",
+						"    )) ~> DeriveAssignmentAttribs",
+						"DeriveAssignmentAttribs select(mapColumn(",
+						"          AssignmentNumber = ASSIGNMENT_NUMBER,",
+						"          PersonKey,",
+						"          PrimaryJob = PRIMARY_JOB,",
+						"          OfficeLocation = OFFICE_LOCATION,",
+						"          AssignmentType = ASSIGNMENT_TYPE,",
+						"          AssignmentStatus = ASSIGNMENT_STATUS,",
+						"          DateStartedInJob = DATE_STARTED_IN_JOB,",
+						"          DateLeftJob = DATE_LEFT_JOB,",
+						"          FullTimePartTime,",
+						"          FTE,",
+						"          OrgKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectAssignment",
+						"SelectAssignment alterRow(upsertIf(true())) ~> AlterRowAssignment",
+						"AlterRowAssignment sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          AssignmentKey as any,",
+						"          AssignmentNumber as any,",
+						"          PersonKey as any,",
+						"          PrimaryJob as any,",
+						"          OfficeLocation as any,",
+						"          AssignmentType as any,",
+						"          AssignmentStatus as any,",
+						"          DateStartedInJob as timestamp,",
+						"          DateLeftJob as timestamp,",
+						"          FixedTermReason as any,",
+						"          FullTimePartTime as any,",
+						"          FTE as decimal(10,2),",
+						"          OrgKey as any,",
+						"          CreatedDate as timestamp,",
+						"          ModifiedDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['AssignmentNumber'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          AssignmentNumber,",
+						"          PersonKey,",
+						"          PrimaryJob,",
+						"          OfficeLocation,",
+						"          AssignmentType,",
+						"          AssignmentStatus,",
+						"          DateStartedInJob,",
+						"          DateLeftJob,",
+						"          FullTimePartTime,",
+						"          FTE,",
+						"          OrgKey",
+						"     )) ~> SinkDimAssignment"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_conformed_activestaff')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Organisation')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Person')]",
+				"[concat(variables('factoryId'), '/datasets/ds_datamart_sql_Dim_Assignment')]"
+			]
+		}
+	]
+}
